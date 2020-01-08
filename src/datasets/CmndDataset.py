@@ -72,12 +72,12 @@ class CmndDataset(Dataset):
     def __init__(self):
         is_dataset_generated = os.path.isdir(Config.data_dir + '/data_cmnd/croped')
         source_path = Config.data_dir + '/data_cmnd/'
-        if not is_dataset_generated:
-            print('Create dataset')
-            CmndDataset.build_dataset()
+        # if not is_dataset_generated:
+        #     print('Create dataset')
+        #     CmndDataset.build_dataset()
         # self.labels = json.load(open(Config.data_dir+'/data_cmnd/label.json',encoding='utf-8'))
         self.labels = self._read_labels(source_path)
-        super().__init__()
+        # super().__init__()
 
     def _build_labels(self):
         pass

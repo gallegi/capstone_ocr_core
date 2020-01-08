@@ -78,7 +78,7 @@ recognizer.training_model.fit_generator(
     steps_per_epoch=training_steps,
     # steps_per_epoch=1000,
     # validation_steps=10,
-    # validation_steps=validation_steps,
+    validation_steps=validation_steps,
     validation_data=validation_gen,
     callbacks=callbacks,
     epochs=2000,
