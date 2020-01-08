@@ -1,0 +1,11 @@
+numpy==1.17
+essential-generators
+tensorflow-gpu>=2.0
+keras
+opencv-python
+matplotlib
+fontTools
+imgaug
+tqdm
+scikit-learn
+validators
