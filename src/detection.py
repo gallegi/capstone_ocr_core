@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-import tools
+from src import tools
 
 
 # The PyTorch portions of this code are subject to the following copyright notice.

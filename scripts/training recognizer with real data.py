@@ -12,7 +12,8 @@ import sklearn.model_selection
 import tensorflow as tf
 
 # import _datasets
-import detection
+import sys
+sys.path.append('src')
 import recognition
 import tools
 from LogImageCallback import LogImageCallback
@@ -82,7 +83,7 @@ callbacks = [
     tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=10, restore_best_weights=False),
     tf.keras.callbacks.ModelCheckpoint('weights/recognizer_{}.h5'.format(type(dataset).__name__), monitor='val_loss', save_best_only=True),
 ]
-training_steps = 10
+training_steps = 2000
 validation_steps = 100
 
 recognizer.training_model.fit_generator(
@@ -96,14 +97,13 @@ recognizer.training_model.fit_generator(
     epochs=100,
 )
 
-for i in range(6):
-    image_filepath, box, actual = random.choice(validation_labels)
-    xmin,ymin,xmax,ymax = box[0][0],box[0][1],box[-1][0],box[-1][1]
-    predicted = recognizer.recognize_from_boxes(image_filepath,[box])[0][0]
-    print(f'Predicted: {predicted}, Actual: {actual}')
-    image = tools.read(image_filepath)
-    # image = detection.drawBoxes(image=image, boxes=[box])
-    image = cv2.rectangle(image,(xmin,ymin),(xmax,ymax),2)
-    plt.annotate(predicted,box[0])
-    _ = plt.imshow(image)
-    plt.show()
+# for i in range(6):
+#     image_filepath, box, actual = random.choice(validation_labels)
+#     xmin, ymin, xmax, ymax = box[0][0], box[0][1], box[-1][0], box[-1][1]
+#     predicted = recognizer.recognize(image_filepath)
+#     print(f'Predicted: {predicted}, Actual: {actual}')
+#     image = tools.read(image_filepath)
+#     # image = detection.drawBoxes(image=image, boxes=[box])
+#     plt.annotate(predicted, box[0])
+#     _ = plt.imshow(image)
+#     plt.show()

@@ -4,9 +4,10 @@ import math
 import os
 import sys
 
-import Config
+
 
 sys.path.append('src')
+import Config
 import tqdm
 import tensorflow as tf
 import sklearn.model_selection
