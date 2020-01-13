@@ -1,11 +1,11 @@
 # pylint: disable=invalid-name,too-many-locals,too-many-arguments
-import string
 import typing
+import string
 
-import cv2
-import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+import numpy as np
+import cv2
 
 import Config
 import tools
@@ -201,7 +201,7 @@ def build_model(alphabet,
         .. [2]  https://github.com/skaae/transformer_network/blob/master/transformerlayer.py
         .. [3]  https://github.com/EderSantana/seya/blob/keras1/seya/layers/attention.py
         """
-        stn_input_output_shape = (width // pool_size ** 2, height // pool_size ** 2, filters[6])
+        stn_input_output_shape = (width // pool_size**2, height // pool_size**2, filters[6])
         stn_input_layer = keras.layers.Input(shape=stn_input_output_shape)
         locnet_y = keras.layers.Conv2D(16, (5, 5), padding='same',
                                        activation='relu')(stn_input_layer)
@@ -216,8 +216,8 @@ def build_model(alphabet,
         localization_net = keras.models.Model(inputs=stn_input_layer, outputs=locnet_y)
         x = keras.layers.Lambda(_transform,
                                 output_shape=stn_input_output_shape)([x, localization_net(x)])
-    x = keras.layers.Reshape(target_shape=(width // pool_size ** 2,
-                                           (height // pool_size ** 2) * filters[-1]),
+    x = keras.layers.Reshape(target_shape=(width // pool_size**2,
+                                           (height // pool_size**2) * filters[-1]),
                              name='reshape')(x)
 
     x = keras.layers.Dense(rnn_units[0], activation='relu', name='fc_9')(x)
@@ -257,10 +257,10 @@ def build_model(alphabet,
     input_length = keras.layers.Input(shape=[1])
     loss = keras.layers.Lambda(lambda inputs: keras.backend.ctc_batch_cost(
         y_true=inputs[0], y_pred=inputs[1], input_length=inputs[2], label_length=inputs[3]))(
-        [labels, model.output, input_length, label_length])
+            [labels, model.output, input_length, label_length])
     training_model = keras.models.Model(inputs=[model.input, labels, input_length, label_length],
                                         outputs=loss)
-    training_model.compile(loss=lambda _, y_pred: y_pred, optimizer=optimizer)
+    training_model.compile(loss=lambda _, y_pred: y_pred, optimizer=optimizer,metrics=['acc'])
     return backbone, model, training_model, prediction_model
 
 
@@ -308,12 +308,12 @@ class Recognizer:
                 assert pretrained_config['alphabet'] == alphabet, (
                     'Provided alphabet does not match pretrained alphabet. '
                     'Please use `alphabet={alphabet}` or `include_top=False`').format(
-                    alphabet=alphabet)
+                        alphabet=alphabet)
             else:
                 pretrained_target = self.backbone
             pretrained_target.load_weights(
                 tools.download_and_verify(url=pretrained_config['url'],
-                                          sha256=pretrained_config['sha256'], cache_dir='weights'))
+                                          sha256=pretrained_config['sha256'],cache_dir='weights'))
 
     def get_batch_generator(self, image_generator, batch_size=8, lowercase=False):
         """
@@ -370,7 +370,7 @@ class Recognizer:
                                    cval=0)
         if self.prediction_model.input_shape[-1] == 1:
             image = cv2.cvtColor(image, code=cv2.COLOR_RGB2GRAY)[..., np.newaxis]
-        image = image.astype('float32') / 255
+        image = image.astype('float32') / 255.
         return ''.join([
             self.alphabet[idx] for idx in self.prediction_model.predict(image[np.newaxis])[0]
             if idx not in [self.blank_label_idx, -1]
