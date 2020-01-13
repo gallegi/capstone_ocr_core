@@ -32,7 +32,7 @@ class RecognizerMaster():
             optimizer='RMSprop',
             include_top=False
         )
-        self.recognizer.model.load_weights('/home/viettq/Desktop/ocrcore/weights/recognizer_CmndDataset.h5')
+        self.recognizer.model.load_weights('weights/recognizer_CmndDataset.h5')
 
     def similar(self, first_content, second_content):
         return SequenceMatcher(None, first_content, second_content).ratio()
