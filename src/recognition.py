@@ -7,8 +7,8 @@ from tensorflow import keras
 import numpy as np
 import cv2
 
-import Config
-import tools
+from src import Config
+from src import tools
 
 PRETRAINED_WEIGHTS = {
     # Keys are (weights_name, include_top, filters, rnn_units, color, stn)

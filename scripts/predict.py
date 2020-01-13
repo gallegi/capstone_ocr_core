@@ -4,31 +4,30 @@ import string
 import sys
 
 sys.path.append('src')
+import tensorflow as tf
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import detection
 import recognition
 import tools
+from tensorflow.compat.v1 import ConfigProto
+from tensorflow.compat.v1 import InteractiveSession
 
-# config = tf.ConfigProto()
-# config.gpu_options.allow_growth = True
-# sess = tf.Session(config=config)
-
-alphabet = string.digits + string.ascii_letters + '' + 'ảãàáâậầấẩẫăắằặẳẵóòõỏôộổỗồốơờớợởỡéèẻẽêếềệểễúùủũưựữửừứíìịỉĩýỳỷỵỹđ/'
-recognizer_alphabet = ''.join(sorted(set(alphabet.lower())))
+config = ConfigProto()
+config.gpu_options.allow_growth = True
+session = InteractiveSession(config=config)
 
 detector = detection.Detector()
 recognizer = recognition.Recognizer(
     width=200,
     height=31,
     stn=True,
-    alphabet=recognizer_alphabet,
     weights='kurapan',
     optimizer='RMSprop',
     include_top=False
 )
 # recognizer.model = load_model('logs/recognizer.h5')
-recognizer.model.load_weights('logs/recognizer.h5')
+recognizer.model.load_weights('weights/recognizer.h5')
 image_paths = glob.glob('test images/*')
 
 for image_path in tqdm(image_paths):
