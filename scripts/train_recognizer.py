@@ -16,7 +16,7 @@ import recognition
 from Config import data_dir
 
 assert tf.test.is_gpu_available(), 'No GPU is available.'
-
+import imgaug
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
 
@@ -26,6 +26,11 @@ session = InteractiveSession(config=config)
 
 alphabet = ''.join(Config.alphabet)
 recognizer_alphabet = ''.join(sorted(set(alphabet.lower())))
+augmenter = imgaug.augmenters.Sequential([
+        imgaug.augmenters.Multiply((0.9, 1.1)),
+        imgaug.augmenters.GammaContrast(gamma=(0.5, 3.0)),
+        imgaug.augmenters.Invert(0.25, per_channel=0.5)
+    ])
 
 fonts = [
     filepath for filepath in tqdm.tqdm(glob.glob(data_dir + '/fonts/**/*.ttf'))
@@ -63,7 +68,7 @@ image_generators = [
         margin=50,
         rotationX=(-0.05, 0.05),
         rotationY=(-0.05, 0.05),
-        rotationZ=(-15, 15)
+        rotationZ=(-15, 15),augmenter=augmenter
     ) for current_fonts, current_backgrounds in zip(
         font_splits,
         background_splits
@@ -79,8 +84,8 @@ recognizer = recognition.Recognizer(
     optimizer='RMSprop',
     include_top=False
 )
-for layer in recognizer.backbone.layers:
-    layer.trainable = False
+# for layer in recognizer.backbone.layers:
+#     layer.trainable = False
 
 detector_batch_size = 1
 detector_basepath = os.path.join('weights', f'detector_{datetime.datetime.now().isoformat()}')
@@ -102,7 +107,7 @@ recognition_image_generators = [
 # plt.show()
 
 recognition_batch_size = 8
-recognizer_basepath = os.path.join('logs', f'recognizer')
+recognizer_basepath = os.path.join('weights', f'recognizer')
 recognition_train_generator, recognition_val_generator, recogntion_test_generator = [
     recognizer.get_batch_generator(
         image_generator=image_generator,
@@ -110,17 +115,24 @@ recognition_train_generator, recognition_val_generator, recogntion_test_generato
         lowercase=True
     ) for image_generator in recognition_image_generators
 ]
+
+
+try:
+    recognizer.training_model.load_weights('weights/recognizer.h5')
+    print('weights loaded')
+except:
+    print("Can't find or load weights")
+
 recognizer.training_model.fit_generator(
     generator=recognition_train_generator,
     epochs=1000,
-    steps_per_epoch=math.ceil(len(background_splits[0]) / recognition_batch_size),
+    steps_per_epoch=1000,
     callbacks=[
         # tf.keras.callbacks.EarlyStopping(restore_best_weights=True, patience=25),
         tf.keras.callbacks.ModelCheckpoint(filepath=f'{recognizer_basepath}.h5')
     ],
     validation_data=recognition_val_generator,
     validation_steps=math.ceil(len(background_splits[1]) / recognition_batch_size),
-    workers=0
 )
 
 # image, text, lines = next(image_generators[0])
