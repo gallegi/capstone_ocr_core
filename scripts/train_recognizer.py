@@ -4,8 +4,6 @@ import math
 import os
 import sys
 
-
-
 sys.path.append('src')
 import Config
 import tqdm

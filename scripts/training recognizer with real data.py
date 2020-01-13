@@ -3,19 +3,15 @@ import math
 import os
 import random
 import string
+import sys
 
-import cv2
+sys.path.append('src')
 import imgaug
 import matplotlib.pyplot as plt
-import numpy as np
 import sklearn.model_selection
 import tensorflow as tf
 
-# import _datasets
-import sys
-sys.path.append('src')
 import recognition
-import tools
 from LogImageCallback import LogImageCallback
 from datasets.CmndDataset import CmndDataset
 
@@ -40,10 +36,10 @@ recognizer = recognition.Recognizer(
 )
 
 augmenter = imgaug.augmenters.Sequential([
-        imgaug.augmenters.Multiply((0.9, 1.1)),
-        imgaug.augmenters.GammaContrast(gamma=(0.5, 3.0)),
-        imgaug.augmenters.Invert(0.25, per_channel=0.5)
-    ])
+    imgaug.augmenters.Multiply((0.9, 1.1)),
+    imgaug.augmenters.GammaContrast(gamma=(0.5, 3.0)),
+    imgaug.augmenters.Invert(0.25, per_channel=0.5)
+])
 
 recognizer.training_model.summary()
 try:
@@ -79,9 +75,10 @@ for i in range(1):
     # plt.show()
 
 callbacks = [
-    LogImageCallback(validation_labels,recognizer),
+    LogImageCallback(validation_labels, recognizer),
     tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=10, restore_best_weights=False),
-    tf.keras.callbacks.ModelCheckpoint('weights/recognizer_{}.h5'.format(type(dataset).__name__), monitor='val_loss', save_best_only=True),
+    tf.keras.callbacks.ModelCheckpoint('weights/recognizer_{}.h5'.format(type(dataset).__name__), monitor='val_loss',
+                                       save_best_only=True),
 ]
 training_steps = 2000
 validation_steps = 100
