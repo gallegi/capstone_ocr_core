@@ -1,4 +1,9 @@
 # pylint: disable=invalid-name,too-many-locals,no-else-raise,too-many-arguments,no-self-use,too-many-statements,stop-iteration-return,import-outside-toplevel
+
+import sys
+
+sys.path.append('src')
+
 import typing
 
 import cv2
@@ -6,7 +11,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-from src import tools
+import tools
 
 
 # The PyTorch portions of this code are subject to the following copyright notice.

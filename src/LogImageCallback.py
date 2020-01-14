@@ -1,3 +1,7 @@
+import sys
+
+sys.path.append('src')
+
 import random
 
 import cv2
@@ -7,9 +11,9 @@ import tools
 
 
 class LogImageCallback(Callback):
-    def __init__(self,validation_labels,recognizer):
+    def __init__(self, validation_labels, recognizer):
         self.validation_labels = validation_labels
-        self.recognizer= recognizer
+        self.recognizer = recognizer
 
     def on_epoch_end(self, epoch, logs=None):
         image_filepath, box, actual = random.choice(self.validation_labels)
@@ -22,4 +26,3 @@ class LogImageCallback(Callback):
         plt.annotate(predicted, box[0])
         _ = plt.imshow(image)
         plt.savefig('logs/{}.png'.format(epoch))
-
