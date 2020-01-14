@@ -22,3 +22,4 @@ class LogImageCallback(Callback):
         plt.annotate(predicted, box[0])
         _ = plt.imshow(image)
         plt.savefig('logs/{}.png'.format(epoch))
+

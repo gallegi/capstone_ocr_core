@@ -1,7 +1,6 @@
 import glob
 import os
 import sys
-
 sys.path.append('src')
 from essential_generators import MarkovTextGenerator, MarkovWordGenerator
 import tools
