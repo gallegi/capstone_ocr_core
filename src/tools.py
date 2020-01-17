@@ -32,6 +32,8 @@ def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
         assert os.path.isfile(filepath_or_buffer), \
             'Could not find image at path: ' + filepath_or_buffer
         image = cv2.imread(filepath_or_buffer)
+        if image is None :
+            return None
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 
