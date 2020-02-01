@@ -1,6 +1,5 @@
 import datetime
 import glob
-import math
 import os
 import sys
 
@@ -128,7 +127,8 @@ recognizer.training_model.fit_generator(
     steps_per_epoch=1000,
     callbacks=[
         # tf.keras.callbacks.EarlyStopping(restore_best_weights=True, patience=25),
-        tf.keras.callbacks.ModelCheckpoint(filepath=f'{recognizer_basepath}.h5')
+        tf.keras.callbacks.ModelCheckpoint(filepath=f'{recognizer_basepath}.h5', monitor='acc', save_best_only=True,
+                                           save_weights_only=True)
     ],
 )
 

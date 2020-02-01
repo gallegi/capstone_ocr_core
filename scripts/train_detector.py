@@ -1,11 +1,12 @@
-import datetime
 import glob
 import math
 import os
-import string
 import sys
 
 sys.path.append('src')
+
+import Config
+
 import tqdm
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -18,9 +19,8 @@ from Config import data_dir
 
 assert tf.test.is_gpu_available(), 'No GPU is available.'
 
-alphabet = string.digits + string.ascii_letters + '' + 'ạảãàáâậầấẩẫăắằặẳẵóòọõỏôộổỗồốơờớợởỡéèẻẹẽêếềệểễúùụủũưựữửừứíìịỉĩýỳỷỵỹđ'
+alphabet = ''.join(Config.alphabet)
 recognizer_alphabet = ''.join(sorted(set(alphabet.lower())))
-
 fonts = [
     filepath for filepath in tqdm.tqdm(glob.glob(data_dir + '/fonts/**/*.ttf'))
     if (
@@ -85,7 +85,7 @@ for layer in recognizer.backbone.layers:
     layer.trainable = False
 
 detector_batch_size = 1
-detector_basepath = os.path.join('logs', f'detector_{datetime.datetime.now().isoformat()}')
+detector_basepath = os.path.join('weights', f'detector')
 detection_train_generator, detection_val_generator, detection_test_generator = [
     detector.get_batch_generator(
         image_generator=image_generator,
@@ -100,7 +100,8 @@ detector.model.fit_generator(
     callbacks=[
         tf.keras.callbacks.EarlyStopping(restore_best_weights=True, patience=5),
         # tf.keras.callbacks.CSVLogger(f'{detector_basepath}.csv'),
-        tf.keras.callbacks.ModelCheckpoint(filepath=f'{detector_basepath}.h5')
+        tf.keras.callbacks.ModelCheckpoint(filepath=f'{detector_basepath}.h5', monitor='acc', save_best_only=True,
+                                           save_weights_only=True)
     ],
     validation_data=detection_val_generator,
     validation_steps=math.ceil(len(background_splits[1]) / detector_batch_size)
