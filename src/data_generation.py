@@ -97,24 +97,6 @@ def get_maximum_uniform_contour(image, fontsize, margin=0):
     return contour, isDark
 
 
-def font_supports_alphabet(filepath, alphabet):
-    """Verify that a font contains a specific set of characters.
-
-    Args:
-        filepath: Path to fsontfile
-        alphabet: A string of characters to check for.
-    """
-    font = fontTools.ttLib.TTFont(filepath)
-    if not all(any(ord(c) in table.cmap.keys() for table in font['cmap'].tables) for c in alphabet):
-        return False
-    font = PIL.ImageFont.truetype(filepath)
-    try:
-        for character in alphabet:
-            font.getsize(character)
-    # pylint: disable=bare-except
-    except:
-        return False
-    return True
 
 
 def get_text_generator(alphabet=None, lowercase=False, max_string_length=None):

@@ -1,5 +1,7 @@
 import string
 
+
+
 data_dir = 'data'
 alphabet = sorted(list(set(
     string.digits.lower() + string.ascii_letters.lower() + '' + '-ọụạảãàáâậầấẩẫăắằặẳẵóòõỏôộổỗồốơờớợởỡéèẻẽêếềệểễúùủũưựữửừứíìịỉĩýỳỷỵỹđ:;,.')))
@@ -11,3 +13,5 @@ alphabet = ''.join(alphabet)
 
 word_gen_model_path = data_dir + '/markov_wordgen.json'
 text_gen_model_path = data_dir + '/markov_textgen.json'
+
+FONT_PATH = data_dir + '/fonts/'

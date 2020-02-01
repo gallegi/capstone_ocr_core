@@ -25,9 +25,9 @@ if __name__ == '__main__':
         url=f'https://github.com/google/fonts/archive/{fonts_commit}.zip',
         cache_dir='.',
         sha256=fonts_sha256)
-    shutil.rmtree('data/fonts-raw', ignore_errors=True)
+    shutil.rmtree('data/fonts', ignore_errors=True)
     with zipfile.ZipFile(fonts_source_zip_filepath) as zfile:
-        zfile.extractall(path='data/fonts-raw')
+        zfile.extractall(path='data/fonts')
 
     retained_fonts = []
     sha256s = []
@@ -62,7 +62,7 @@ if __name__ == '__main__':
         'Monofett.ttf', 'Raleway-ThinItalic.ttf', 'Raleway-Thin.ttf', 'JosefinSansStd-Light.ttf',
         'LibreBarcode128-Regular.ttf'
     ]
-    for filepath in tqdm.tqdm(sorted(glob.glob('data/fonts-raw/**/**/**/*.ttf')),
+    for filepath in tqdm.tqdm(sorted(glob.glob('data/fonts/**/**/**/*.ttf')),
                               desc='Filtering fonts.'):
         sha256 = tools.sha256sum(filepath)
         basename = os.path.basename(filepath)
@@ -81,7 +81,7 @@ if __name__ == '__main__':
             # the retained font files. And we don't want
             # to add the same file twice.
             files = [
-                input_filepath for input_filepath in glob.glob(f'data/fonts-raw/**/**/{font_family}/*')
+                input_filepath for input_filepath in glob.glob(f'data/fonts/**/**/{font_family}/*')
                 if input_filepath not in added and
                    (input_filepath in retained_fonts or os.path.splitext(input_filepath)[1] != '.ttf')
             ]

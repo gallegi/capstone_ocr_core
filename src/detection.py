@@ -587,6 +587,7 @@ class Detector:
                 concentrated the heatmap becomes.
         """
         heatmap = get_gaussian_heatmap(size=heatmap_size, distanceRatio=heatmap_distance_ratio)
+
         while True:
             batch = [next(image_generator) for n in range(batch_size)]
             images = np.array([entry[0] for entry in batch])
