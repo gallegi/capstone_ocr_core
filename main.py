@@ -9,7 +9,6 @@ from src.recognizer_master import RecognizerMaster
 import tensorflow as tf
 import traceback
 import re
-
 global recognizer_master
 graph = tf.compat.v1.get_default_graph()
 with graph.as_default():

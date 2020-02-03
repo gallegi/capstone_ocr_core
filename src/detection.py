@@ -150,7 +150,7 @@ def map_to_rgb(y):
         (y.shape[0], y.shape[1], 1))], axis=-1) * 255).astype('uint8')
 
 
-def drawBoxes(image, boxes, color=(0, 255, 0), thickness=3):
+def drawBoxes(image, boxes, color=(0, 255, 0), thickness=1):
     canvas = image.copy()
     for box in boxes:
         cv2.polylines(img=canvas,

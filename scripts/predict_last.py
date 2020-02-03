@@ -147,4 +147,4 @@ class RecognizerMaster():
 if __name__ == '__main__':
     recognizer_master = RecognizerMaster()
     print('start')
-    print(recognizer_master.recognizer_image('./0.png'))
+    print(recognizer_master.recognizer_image('/home/linhnq3/Disk2T/git/ocrcore/test images/1578488829.3278139.jpg'))

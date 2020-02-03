@@ -1,19 +1,19 @@
 import datetime
 import glob
+import math
 import os
 import sys
-
+import cv2
 sys.path.append('src')
 import Config
 import tqdm
 import tensorflow as tf
 import sklearn.model_selection
-
+from matplotlib import pyplot as plt
 import data_generation
-# import detection
 import recognition
 from Config import data_dir
-import fonts
+
 assert tf.test.is_gpu_available(), 'No GPU is available.'
 import imgaug
 from tensorflow.compat.v1 import ConfigProto
@@ -23,7 +23,9 @@ config = ConfigProto()
 config.gpu_options.allow_growth = True
 session = InteractiveSession(config=config)
 
-alphabet = ''.join(Config.alphabet)
+alphabet = Config.alphabet
+alphabet = alphabet[:-1]
+print("Alphabet : ", len(alphabet))
 recognizer_alphabet = ''.join(sorted(set(alphabet.lower())))
 augmenter = imgaug.augmenters.Sequential([
     imgaug.augmenters.Multiply((0.9, 1.1)),
@@ -31,17 +33,24 @@ augmenter = imgaug.augmenters.Sequential([
     imgaug.augmenters.Invert(0.25, per_channel=0.5)
 ])
 
-fonts = fonts.read_all_fonts()
+fonts = [
+    filepath for filepath in tqdm.tqdm(glob.glob(data_dir + '/fonts/japanese/*.ttf'))
+    if (
+            (not any(keyword in filepath.lower() for keyword in ['thin', 'light'])) and
+            data_generation.font_supports_alphabet(filepath=filepath, alphabet=alphabet)
+    )
+]
+
+print('Count fonts : {}'.format(len(fonts)))
 
 backgrounds = glob.glob(data_dir + '/backgrounds/*.jpg')
 
 text_generator = data_generation.get_text_generator(alphabet=alphabet)
 print('The first generated text is:', next(text_generator))
 
-
 def get_train_val_test_split(arr):
     train, valtest = sklearn.model_selection.train_test_split(arr, train_size=0.8, random_state=42)
-    val, test = sklearn.model_selection.train_test_split(valtest, train_size=0.5, random_state=42)
+    val, test = sklearn.model_selection.train_test_split(valtest, train_size=0.25, random_state=42)
     return train, val, test
 
 
@@ -58,7 +67,7 @@ image_generators = [
         },
         backgrounds=current_backgrounds,
         font_size=(60, 120),
-        margin=10,
+        margin=50,
         rotationX=(-0.05, 0.05),
         rotationY=(-0.05, 0.05),
         rotationZ=(-15, 15), augmenter=augmenter
@@ -82,7 +91,7 @@ recognizer = recognition.Recognizer(
 
 detector_batch_size = 1
 detector_basepath = os.path.join('weights', f'detector_{datetime.datetime.now().isoformat()}')
-max_length = 10
+max_length = 5
 
 recognition_image_generators = [
     data_generation.convert_image_generator_to_recognizer_input(
@@ -94,13 +103,9 @@ recognition_image_generators = [
     ) for image_generator in image_generators
 ]
 
-# image, text = next(recognition_image_generators[1])
-# print('This image contains:', text)
-# plt.imshow(image)
-# plt.show()
 
 recognition_batch_size = 8
-recognizer_basepath = os.path.join('weights', f'recognizer')
+recognizer_basepath = os.path.join('weights', f'recognizer_japanese')
 recognition_train_generator, recognition_val_generator, recogntion_test_generator = [
     recognizer.get_batch_generator(
         image_generator=image_generator,
@@ -115,14 +120,24 @@ try:
 except:
     print("Can't find or load weights")
 
+recognizer.training_model.summary()
+
+
+# while 1 :
+#     image, text = next(image_generators[0])
+#     mat = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
+#     cv2.imshow('mat',mat)
+#     k = cv2.waitKey(1)
+
+
+# print(text)
 recognizer.training_model.fit_generator(
     generator=recognition_train_generator,
     epochs=1000,
     steps_per_epoch=1000,
     callbacks=[
         # tf.keras.callbacks.EarlyStopping(restore_best_weights=True, patience=25),
-        tf.keras.callbacks.ModelCheckpoint(filepath=f'{recognizer_basepath}.h5', monitor='acc', save_best_only=True,
-                                           save_weights_only=True)
+        tf.keras.callbacks.ModelCheckpoint(filepath=f'{recognizer_basepath}.h5')
     ],
 )
 

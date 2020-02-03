@@ -5,13 +5,20 @@ import os
 import typing
 import urllib.parse
 import urllib.request
+from math import sqrt
 
 import cv2
 import imgaug
 import numpy as np
 import validators
+from PIL import ImageDraw, Image, ImageFont
+from pytesseract import Output
 from scipy import spatial
 from shapely import geometry
+import pytesseract
+
+fontpath = "AlegreyaSansSC-Medium.otf"
+font = ImageFont.truetype(fontpath, 20)
 
 
 def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
@@ -32,9 +39,10 @@ def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
         assert os.path.isfile(filepath_or_buffer), \
             'Could not find image at path: ' + filepath_or_buffer
         image = cv2.imread(filepath_or_buffer)
-        if image is None :
+        if image is None:
             return None
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    # return image
 
 
 def warpBox(image,
@@ -347,6 +355,7 @@ def get_rotated_box(
         with the angle of rotation about the bottom left corner.
     """
     mp = geometry.MultiPoint(points=points)
+
     pts = np.array(list(zip(*mp.minimum_rotated_rectangle.exterior.xy)))[:-1]  # noqa: E501
 
     # The code below is taken from
@@ -380,3 +389,116 @@ def get_rotated_box(
 
     rotation = np.arctan((tl[0] - bl[0]) / (tl[1] - bl[1]))
     return pts, rotation
+
+
+def rotateImage(image, angle):
+    image_center = tuple(np.array(image.shape[1::-1]) / 2)
+    rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
+    result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
+    return result
+
+
+def image_deskew(mat, boxes):
+    colors = [[0, 255, 0], [255, 127, 0], [127, 127, 127], [0, 0, 255]]
+    mat = cv2.cvtColor(mat, cv2.COLOR_RGB2BGR)
+    degrees = []
+    h, w, c = mat.shape
+    blank = np.zeros(shape=(h, w), dtype=np.uint8)
+
+    for box in boxes:
+        # for i, point in enumerate(box):
+        #     cv2.circle(mat, tuple(point.astype(int)), 3, colors[i], -1)
+        x1, y1 = (box[0] + box[3]) / 2
+        x2, y2 = (box[1] + box[2]) / 2
+
+        cv2.line(blank, (x1, y1), (x2, y2), 255, 1)
+
+        sin_alpha = abs(y1 - y2) / sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+        alpha = np.arcsin(sin_alpha)
+        degree = alpha * np.pi / 180
+        degrees.append(degree)
+    degrees = np.array(degrees)
+    mean_degrees = degrees.mean()
+
+    coords = np.column_stack(np.where(blank > 0))
+    angle = cv2.minAreaRect(coords)[-1]
+
+    if angle < -45:
+        angle = -(90 + angle)
+    else:
+        angle = -angle
+
+    (h, w) = mat.shape[:2]
+    center = (w // 2, h // 2)
+    M = cv2.getRotationMatrix2D(center, angle, 1.0)
+    rotated = cv2.warpAffine(mat, M, (w, h),
+                             flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+
+    print(angle)
+    return rotated
+
+
+def ocr_tesseract(mat, boxes=None, min_conf=0.2, draw_box=True, display_text=True):
+    mat_ymin = 100000
+    mat_ymax = -1
+    if boxes is not None:
+        crops = []
+        image = mat
+        for box in boxes:
+            xmin, ymin, xmax, ymax = min(box[:, 0]), min(box[:, 1]), max(box[:, 0]), max(box[:, 1])
+            mat_ymin = min(mat_ymin,ymin)
+            mat_ymax = max(mat_ymax,ymax)
+            h, w = ymax - ymin, xmax - xmin
+            crop = tools.warpBox(image=image,
+                                 box=box,margin=5,
+                                 target_height=int(h),
+                                 target_width=int(w))
+            text = pytesseract.image_to_string(crop, lang='vie_best', config='--psm 8')
+            img_pil = Image.fromarray(mat)
+            draw = ImageDraw.Draw(img_pil)
+            draw.text((xmin, ymin + 10), text, font=font, fill=(0, 0, 255, 255))
+            mat = np.array(img_pil)
+
+        mat = mat[int(mat_ymin):int(mat_ymax),:,:]
+    else:
+        print(pytesseract.image_to_string(mat, lang='vie_best'))
+    return mat, None
+
+
+if __name__ == '__main__':
+    import glob
+    import os
+    import sys
+
+    import cv2
+
+    sys.path.append('src')
+    import matplotlib.pyplot as plt
+    from tqdm import tqdm
+    import detection
+    import recognition
+    import tools
+    from tensorflow.compat.v1 import ConfigProto
+    from tensorflow.compat.v1 import InteractiveSession
+
+    config = ConfigProto()
+    config.gpu_options.allow_growth = True
+    session = InteractiveSession(config=config)
+
+    detector = detection.Detector()
+    image_paths = glob.glob('test images/*')
+
+    for image_path in tqdm(image_paths):
+        image_name = image_path.split(os.sep)[-1]
+        image = tools.read(image_path)
+        h, w, c = image.shape
+        image = cv2.resize(image, (int(w / 2), int(h / 2)))
+        if image is None: continue
+        boxes = detector.detect(images=[image])[0]
+        mat1 = detection.drawBoxes(image=image, boxes=boxes)
+        cv2.imshow('original', mat1)
+        mat = tools.image_deskew(image, boxes)
+        boxes = detector.detect(images=[mat])[0]
+        mat, d = ocr_tesseract(mat, boxes)
+        cv2.imshow('mat', mat)
+        cv2.waitKey(0)

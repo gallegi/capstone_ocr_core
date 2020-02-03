@@ -16,20 +16,21 @@ import data_generation
 import detection
 import recognition
 from Config import data_dir
+import fonts
+import imgaug
+
 
 assert tf.test.is_gpu_available(), 'No GPU is available.'
 
 alphabet = ''.join(Config.alphabet)
 recognizer_alphabet = ''.join(sorted(set(alphabet.lower())))
-fonts = [
-    filepath for filepath in tqdm.tqdm(glob.glob(data_dir + '/fonts/**/*.ttf'))
-    if (
-            (not any(keyword in filepath.lower() for keyword in ['thin', 'light'])) and
-            data_generation.font_supports_alphabet(filepath=filepath, alphabet=alphabet)
-    )
-]
-
+fonts = fonts.read_all_fonts()
 backgrounds = glob.glob(data_dir + '/backgrounds/*.jpg')
+augmenter = imgaug.augmenters.Sequential([
+    imgaug.augmenters.Multiply((0.9, 1.1)),
+    imgaug.augmenters.GammaContrast(gamma=(0.5, 3.0)),
+    imgaug.augmenters.Invert(0.25, per_channel=0.5)
+])
 
 text_generator = data_generation.get_text_generator(alphabet=alphabet)
 print('The first generated text is:', next(text_generator))
@@ -54,7 +55,7 @@ image_generators = [
         },
         backgrounds=current_backgrounds,
         font_size=(60, 120),
-        margin=50,
+        margin=50,augmenter=augmenter,
         rotationX=(-0.05, 0.05),
         rotationY=(-0.05, 0.05),
         rotationZ=(-15, 15)

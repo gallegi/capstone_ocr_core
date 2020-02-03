@@ -396,12 +396,12 @@ class Recognizer:
         for box in boxes:
             crops.append(
                 tools.warpBox(image=image,
-                              box=box,
+                              box=box,margin=3,
                               target_height=self.model.input_shape[1],
                               target_width=self.model.input_shape[2]))
         crops = np.array(
             [cv2.cvtColor(crop, cv2.COLOR_RGB2GRAY)[..., np.newaxis] for crop in crops])
-        X = crops.astype('float32') / 255
+        X = crops.astype('float32') / 255.
         predictions = []
         for index in range(0, len(X), batch_size):
             y = self.prediction_model.predict(X[index:index + batch_size])
