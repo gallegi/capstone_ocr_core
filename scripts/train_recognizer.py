@@ -1,11 +1,9 @@
-import datetime
 import glob
 import os
 import sys
 
 sys.path.append('src')
 import Config
-import tqdm
 import tensorflow as tf
 import sklearn.model_selection
 
@@ -73,15 +71,11 @@ recognizer = recognition.Recognizer(
     height=31,
     stn=True,
     alphabet=recognizer_alphabet,
-    weights='kurapan',
+    weights=None,
     optimizer='adam',
-    include_top=False
+    include_top=False, attention=True,
 )
-# for layer in recognizer.backbone.layers:
-#     layer.trainable = False
 
-detector_batch_size = 1
-detector_basepath = os.path.join('weights', f'detector_{datetime.datetime.now().isoformat()}')
 max_length = 10
 
 recognition_image_generators = [
@@ -90,7 +84,7 @@ recognition_image_generators = [
         max_string_length=min(recognizer.training_model.input_shape[1][1], max_length),
         target_width=recognizer.model.input_shape[2],
         target_height=recognizer.model.input_shape[1],
-        margin=1
+        margin=5
     ) for image_generator in image_generators
 ]
 
@@ -114,7 +108,7 @@ try:
     print('weights loaded')
 except:
     print("Can't find or load weights")
-
+recognizer.training_model.summary()
 recognizer.training_model.fit_generator(
     generator=recognition_train_generator,
     epochs=1000,

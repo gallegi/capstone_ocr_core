@@ -14,7 +14,6 @@ import PIL.ImageDraw
 import PIL.ImageFont
 import cv2
 import essential_generators
-import fontTools.ttLib
 import numpy as np
 from essential_generators import MarkovWordGenerator, MarkovTextGenerator
 
@@ -172,6 +171,7 @@ def convert_image_generator_to_recognizer_input(image_generator,
         margin: The margin to apply around a single line.
     """
     while True:
+        margin = int(random.uniform(-1, 1) * margin)
         image, lines = next(image_generator)
         if len(lines) == 0:
             continue

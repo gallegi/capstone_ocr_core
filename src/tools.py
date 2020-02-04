@@ -1,25 +1,22 @@
 # pylint: disable=invalid-name,too-many-branches,too-many-statements,too-many-arguments
 import hashlib
 import io
-import os
 import typing
 import urllib.parse
 import urllib.request
 from math import sqrt
 
-import cv2
 import imgaug
 import numpy as np
+import pytesseract
 import validators
-from PIL import ImageDraw, Image, ImageFont
-from pytesseract import Output
+from PIL import ImageDraw, Image
 from scipy import spatial
 from shapely import geometry
-import pytesseract
 
-fontpath = "AlegreyaSansSC-Medium.otf"
-font = ImageFont.truetype(fontpath, 20)
 
+# fontpath = "AlegreyaSansSC-Medium.otf"
+# font = ImageFont.truetype(fontpath, 20)
 
 def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
     """Read a file into an image object
@@ -473,10 +470,8 @@ if __name__ == '__main__':
     import cv2
 
     sys.path.append('src')
-    import matplotlib.pyplot as plt
     from tqdm import tqdm
     import detection
-    import recognition
     import tools
     from tensorflow.compat.v1 import ConfigProto
     from tensorflow.compat.v1 import InteractiveSession

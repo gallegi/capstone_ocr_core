@@ -1,11 +1,11 @@
 # pylint: disable=invalid-name,too-many-locals,too-many-arguments
 import sys
 
+
 sys.path.append('src')
 
 import typing
 import string
-
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
@@ -157,6 +157,19 @@ def CTCDecoder():  # pylint: disable=invalid-name
     return keras.layers.Lambda(decoder, name='decode')
 
 
+def attention_rnn(inputs):
+    # inputs.shape = (batch_size, time_steps, input_dim)
+    input_dim = int(inputs.shape[2])
+    timestep = int(inputs.shape[1])
+    a = keras.layers.Permute((2, 1))(inputs)
+    a = keras.layers.Dense(timestep, activation='softmax')(a)
+    a = keras.layers.Lambda(lambda x: keras.backend.mean(x, axis=1), name='dim_reduction')(a)
+    a = keras.layers.RepeatVector(input_dim)(a)
+    a_probs = keras.layers.Permute((2, 1), name='attention_vec')(a)
+    output_attention_mul = keras.layers.multiply([inputs, a_probs], name='attention_mul')
+    return output_attention_mul
+
+
 def build_model(alphabet,
                 height,
                 width,
@@ -167,7 +180,7 @@ def build_model(alphabet,
                 rnn_steps_to_discard=2,
                 optimizer=None,
                 pool_size=2,
-                stn=True):
+                stn=True, attention=False):
     if optimizer is None:
         optimizer = keras.optimizers.SGD(decay=1e-6, momentum=0.9, nesterov=True, clipnorm=5)
     inputs = keras.layers.Input((height, width, 3 if color else 1))
@@ -225,7 +238,8 @@ def build_model(alphabet,
                              name='reshape')(x)
 
     x = keras.layers.Dense(rnn_units[0], activation='relu', name='fc_9')(x)
-
+    if attention:
+        x = attention_rnn(x)
     rnn_1_forward = keras.layers.LSTM(rnn_units[0],
                                       kernel_initializer="he_normal",
                                       return_sequences=True,
@@ -396,7 +410,7 @@ class Recognizer:
         for box in boxes:
             crops.append(
                 tools.warpBox(image=image,
-                              box=box,margin=3,
+                              box=box, margin=3,
                               target_height=self.model.input_shape[1],
                               target_width=self.model.input_shape[2]))
         crops = np.array(
