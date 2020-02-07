@@ -1,6 +1,8 @@
 import PIL
 import fontTools
 import tqdm
+from fontTools.ttLib import TTFont
+
 import data_generation
 import Config
 import glob
@@ -13,7 +15,8 @@ def _font_supports_alphabet(filepath, alphabet):
         filepath: Path to fsontfile
         alphabet: A string of characters to check for.
     """
-    font = fontTools.ttLib.TTFont(filepath)
+    font = TTFont(filepath)
+    # font = fontTools.ttLib.TTFont(filepath)
     if not all(any(ord(c) in table.cmap.keys() for table in font['cmap'].tables) for c in alphabet):
         return False
     font = PIL.ImageFont.truetype(filepath)
