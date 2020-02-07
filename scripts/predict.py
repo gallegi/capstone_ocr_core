@@ -26,7 +26,8 @@ recognizer = recognition.Recognizer(
     stn=True,
     weights='kurapan',
     optimizer='RMSprop',
-    include_top=0
+    include_top=0,
+    attention=True
 )
 
 recognizer.model.load_weights('weights/recognizer.h5')
@@ -36,13 +37,13 @@ for image_path in tqdm(image_paths):
     image_name = image_path.split(os.sep)[-1]
     image = tools.read(image_path)
     h, w, c = image.shape
-    image = cv2.resize(image, (int(w / 2), int(h / 2)))
+    image = cv2.resize(image, (int(w / 1.5), int(h / 1.5)))
     if image is None:
         continue
     try:
         boxes = detector.detect(images=[image])[0]
-        image = tools.image_deskew(image, boxes)
-        boxes = detector.detect(images=[image])[0]
+        # image = tools.image_deskew(image, boxes)
+        # boxes = detector.detect(images=[image])[0]
     except:
         continue
     predictions = recognizer.recognize_from_boxes(image=image, boxes=boxes)

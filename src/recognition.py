@@ -1,7 +1,6 @@
 # pylint: disable=invalid-name,too-many-locals,too-many-arguments
 import sys
 
-
 sys.path.append('src')
 
 import typing
@@ -295,7 +294,7 @@ class Recognizer:
                  stn=True,
                  rnn_steps_to_discard=2,
                  weights='kurapan',
-                 include_top=True):
+                 include_top=True, attention=False):
         if filters is None:
             filters = [64, 128, 256, 256, 512, 512, 512]
         assert len(filters) == 7, '7 CNN filters must be provided.'
@@ -314,7 +313,7 @@ class Recognizer:
             color=color,
             filters=filters,
             rnn_units=rnn_units,
-            dropout=dropout)
+            dropout=dropout,attention=attention)
         if weights is not None:
             pretrained_key = (weights, include_top, tuple(filters), tuple(rnn_units), color, stn)
             assert pretrained_key in PRETRAINED_WEIGHTS, (
@@ -331,7 +330,7 @@ class Recognizer:
                 pretrained_target = self.backbone
             pretrained_target.load_weights(
                 tools.download_and_verify(url=pretrained_config['url'],
-                                          sha256=pretrained_config['sha256'], cache_dir='weights'))
+                                          sha256=pretrained_config['sha256'], cache_dir='weights'),by_name=True)
 
     def get_batch_generator(self, image_generator, batch_size=8, lowercase=False):
         """

@@ -1,7 +1,9 @@
 import glob
 import os
 import sys
-
+import json
+import json_tricks
+json = json_tricks
 sys.path.append('src')
 import Config
 import tensorflow as tf
@@ -71,10 +73,13 @@ recognizer = recognition.Recognizer(
     height=31,
     stn=True,
     alphabet=recognizer_alphabet,
-    weights=None,
+    weights='kurapan',
     optimizer='adam',
     include_top=False, attention=True,
 )
+
+for layer in recognizer.backbone.layers:
+    layer.trainable = False
 
 max_length = 10
 
