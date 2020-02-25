@@ -70,7 +70,6 @@ class CmndDataset(Dataset):
         return labels
 
     def __init__(self):
-        is_dataset_generated = os.path.isdir(Config.data_dir + '/data_cmnd/croped')
         source_path = Config.data_dir + '/data_cmnd/'
         # if not is_dataset_generated:
         #     print('Create dataset')

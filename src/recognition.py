@@ -413,7 +413,10 @@ class Recognizer:
                               target_height=self.model.input_shape[1],
                               target_width=self.model.input_shape[2]))
         crops = np.array(
-            [cv2.cvtColor(crop, cv2.COLOR_RGB2GRAY)[..., np.newaxis] for crop in crops])
+            [cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)[..., np.newaxis] for crop in crops])
+        # for mat in crops:
+        #     Config.count+=1
+        # cv2.imwrite('boxs/{}.png'.format(Config.count), mat)
         X = crops.astype('float32') / 255.
         predictions = []
         for index in range(0, len(X), batch_size):

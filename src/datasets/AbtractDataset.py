@@ -69,11 +69,14 @@ class Dataset:
             filepath, box, text = labels[index]
             cval = np.random.randint(low=0, high=255, size=3).astype('uint8')
             if box is not None:
-                image = tools.warpBox(image=tools.read(filepath),
-                                      box=box.astype('float32'),
-                                      target_height=height,
-                                      target_width=width,
-                                      cval=cval)
+                try:
+                    image = tools.warpBox(image=tools.read(filepath),
+                                          box=box.astype('float32'),
+                                          target_height=height,
+                                          target_width=width,
+                                          cval=cval)
+                except:
+                    continue
             else:
                 image = tools.read_and_fit(filepath_or_array=filepath,
                                            width=width,

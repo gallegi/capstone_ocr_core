@@ -1,22 +1,22 @@
 # pylint: disable=invalid-name,too-many-branches,too-many-statements,too-many-arguments
 import hashlib
 import io
+import os
 import typing
 import urllib.parse
 import urllib.request
 from math import sqrt
 
+import cv2
 import imgaug
 import numpy as np
 import pytesseract
 import validators
-from PIL import ImageDraw, Image
+from PIL import ImageDraw, Image, ImageFont
 from scipy import spatial
 from shapely import geometry
 
-
-# fontpath = "AlegreyaSansSC-Medium.otf"
-# font = ImageFont.truetype(fontpath, 20)
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
     """Read a file into an image object
@@ -436,6 +436,8 @@ def image_deskew(mat, boxes):
 
 
 def ocr_tesseract(mat, boxes=None, min_conf=0.2, draw_box=True, display_text=True):
+    fontpath = "AlegreyaSansSC-Medium.otf"
+    font = ImageFont.truetype(fontpath, 20)
     mat_ymin = 100000
     mat_ymax = -1
     if boxes is not None:
@@ -443,8 +445,8 @@ def ocr_tesseract(mat, boxes=None, min_conf=0.2, draw_box=True, display_text=Tru
         image = mat
         for box in boxes:
             xmin, ymin, xmax, ymax = min(box[:, 0]), min(box[:, 1]), max(box[:, 0]), max(box[:, 1])
-            mat_ymin = min(mat_ymin,ymin)
-            mat_ymax = max(mat_ymax,ymax)
+            mat_ymin = min(mat_ymin, ymin)
+            mat_ymax = max(mat_ymax, ymax)
             h, w = ymax - ymin, xmax - xmin
             crop = tools.warpBox(image=image,
                                  box=box,margin=5,
@@ -464,10 +466,8 @@ def ocr_tesseract(mat, boxes=None, min_conf=0.2, draw_box=True, display_text=Tru
 
 if __name__ == '__main__':
     import glob
-    import os
     import sys
 
-    import cv2
 
     sys.path.append('src')
     from tqdm import tqdm
@@ -484,16 +484,18 @@ if __name__ == '__main__':
     image_paths = glob.glob('test images/*')
 
     for image_path in tqdm(image_paths):
+
         image_name = image_path.split(os.sep)[-1]
         image = tools.read(image_path)
         h, w, c = image.shape
-        image = cv2.resize(image, (int(w / 2), int(h / 2)))
+        # image = cv2.resize(image, (int(w / 2), int(h / 2)))
         if image is None: continue
         boxes = detector.detect(images=[image])[0]
-        mat1 = detection.drawBoxes(image=image, boxes=boxes)
-        cv2.imshow('original', mat1)
+        # mat1 = detection.drawBoxes(image=image, boxes=boxes)
+        # cv2.imshow('original', mat1)
         mat = tools.image_deskew(image, boxes)
         boxes = detector.detect(images=[mat])[0]
         mat, d = ocr_tesseract(mat, boxes)
-        cv2.imshow('mat', mat)
-        cv2.waitKey(0)
+        # cv2.imshow('mat', mat)
+        cv2.imwrite('test results/{}'.format(image_name), mat)
+        # cv2.waitKey(0)

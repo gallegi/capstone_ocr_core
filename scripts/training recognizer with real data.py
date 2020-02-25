@@ -1,9 +1,6 @@
-import itertools
-import math
-import os
-import random
-import string
 import sys
+
+from datasets.LabelmeDataset import LabelmeDataset
 
 sys.path.append('src')
 import imgaug
@@ -13,7 +10,6 @@ import tensorflow as tf
 
 import recognition
 from LogImageCallback import LogImageCallback
-from datasets.CmndDataset import CmndDataset
 
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
@@ -22,7 +18,7 @@ config = ConfigProto()
 config.gpu_options.allow_growth = True
 session = InteractiveSession(config=config)
 
-dataset = CmndDataset()
+dataset = LabelmeDataset(r'D:\Github\ocrcore\data\bills', name='bill')
 train_labels = dataset.labels
 train_labels = [(filepath, box, word.lower()) for filepath, box, word in train_labels]
 dataset.labels = train_labels
@@ -30,9 +26,9 @@ dataset.labels = train_labels
 recognizer = recognition.Recognizer(
     width=200,
     height=31,
-    stn=True,
-    optimizer='RMSprop',
-    include_top=False,
+    stn=0,
+    optimizer='adam', attention=1,
+    include_top=False, weights=None
 )
 
 augmenter = imgaug.augmenters.Sequential([
@@ -77,7 +73,8 @@ for i in range(1):
 callbacks = [
     LogImageCallback(validation_labels, recognizer),
     tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=10, restore_best_weights=False),
-    tf.keras.callbacks.ModelCheckpoint('weights/recognizer_{}.h5'.format(type(dataset).__name__), monitor='val_loss',
+    tf.keras.callbacks.ModelCheckpoint('weights/bill_recognizer_{}.h5'.format(type(dataset).__name__),
+                                       monitor='val_loss',
                                        save_best_only=True),
 ]
 training_steps = 2000
