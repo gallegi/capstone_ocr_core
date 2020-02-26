@@ -20,9 +20,8 @@ class Box:
     def get_center(self):
         return (self.xmax - self.xmin) / 2, (self.ymax - self.ymin) / 2
 
-    def compute_overlap(self, box):
+    def compute_overlap(self,box):
         box: Box
-
         x_left = max(self.xmin, box.xmin)
         y_top = max(self.ymin, box.ymin)
         x_right = min(self.xmax, box.xmax)
@@ -32,6 +31,12 @@ class Box:
             return 0.0
 
         intersection_area = (x_right - x_left) * (y_bottom - y_top)
+        return intersection_area
+
+    def compute_compute_iou(self, box):
+        box: Box
+
+        intersection_area = self.compute_overlap(box)
 
         # compute the area of both AABBs
         bb1_area = self.w * self.h

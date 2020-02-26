@@ -1,5 +1,6 @@
+#%%
 import glob
-import json
+import json_tricks as json
 import os
 
 import chart_studio
@@ -14,6 +15,7 @@ from Entities.Evaluator import Evaluator
 from Entities.Box import Box
 from Entities.Image import Image
 from Entities.Predict import Predict
+import matplotlib.pyplot as plt
 
 LABEL_SOURCE = 'data/0325updated.task1train(626p)/'
 json_paths = glob.glob('data/ocr_results_techchain/*.json')
@@ -56,8 +58,9 @@ def read_data(path):
 
         predict = Predict(box=box, text=line['text'], confidence=line['confidence'], time_predict=time_predict)
         predicts.append(predict)
-
-    return predicts
+    w = data['output']['pages'][0]['width']
+    h = data['output']['pages'][0]['height']
+    return predicts,w,h,data['time']
 
 
 def compute_acc_box(predicts, labels, image=None):
@@ -106,63 +109,47 @@ def compute_acc_box(predicts, labels, image=None):
 
     return y_true, y_pred
 
+#%%
 
-ious = []
-y_trues = []
-y_preds = []
-for json_path in tqdm(json_paths[:3]):
+data = json.loads(open('data.json').read())
+
+times = []
+areas = []
+total_requests = []
+total_chars = []
+ious= []
+#%%
+for json_path in tqdm(json_paths):
     image_name = json_path.split(os.sep)[-1].split('.')[0]
+    if image_name not in data:
+        continue
+    iou = data[image_name]['iou']
+
     label_path = LABEL_SOURCE + '/{}.txt'.format(image_name)
+    labels,w,h,time = read_data(json_path)
+    area = w*h / 1e7
+    areas.append(area)
+    times.append(time)
+    count_chars = sum([len(x.text) for x in labels])
+    total_requests.append(len(total_requests))
+    total_chars.append(count_chars)
+    ious.append(iou)
+#%%
+counts = range(0,len(json_path))
+print(np.array(times).mean())
 
-    image = Image(LABEL_SOURCE + '/{}.jpg'.format(image_name))
-    labels = read_label(label_path)
+z = np.array([times,total_chars,total_requests,ious])
+z = np.sort(z,1)
+plt.plot(z[2],z[0],color='b')
+# plt.plot(z[2],z[0],color='g')
 
-    predicts = read_data(json_path)
+# Legend = plt.legend(('characters', 'boxes'), frameon=True, loc='best')
+# Legend.get_frame().set_edgecolor('k')
 
-    # ### DRAW LABEL
-    # for label in labels:
-    #     image.draw_predict(label,box_color=(0,255,0))
-    #
-    # ## DRAW PREDICT
-    # for predict in predicts:
-    #     image.draw_predict(predict,box_color=(0,0,255))
+plt.xlabel('Count candidate boxes')
+plt.ylabel('Time (s)')
+plt.title('Evaluate speed - Model tiếng anh')
+plt.show()
 
-    h, w, c = image.mat.shape
-
-    blank_label = Image(image=np.zeros(shape=(h, w)))
-    blank_predict = Image(image=np.zeros(shape=(h, w)))
-    for predict in predicts:
-        blank_predict.draw_box(predict.box, color=1)
-    for label in labels:
-        blank_label.draw_box(label.box, color=1)
-
-    IOU = Evaluator.compute_iou(blank_label.mat, blank_predict.mat)
-    ious.append(IOU)
-    y_true, y_pred = compute_acc_box(predicts, labels)
-    y_trues.append(y_true)
-    y_preds.append(y_preds)
-
-
-y_preds = np.array(y_preds).flatten()
-y_trues = np.array(y_trues).flatten()
-
-
-MEAN_IOU = np.array(ious).mean()
-image.put_text('IOU : {}'.format(MEAN_IOU))
-print('MEAN IOU : {}'.format(MEAN_IOU))
-
-y_preds = np.array(y_preds)
-y_trues = np.array(y_trues)
-_y_preds = y_preds >= IOU_THRESH_HOLD
-tn, fp, fn, tp = confusion_matrix(y_trues, _y_preds).ravel()
-precision = tp/(tp+fp)
-recall = tp/(tp+fn)
-
-image.draw_boxes([x.box for x in predicts], color=(0, 255, 0))
-image.draw_boxes([x.box for x in labels], color=(0, 0, 255))
-image.put_text('Precision : {}'.format(precision))
-image.put_text('Recall : {}'.format(recall))
-print('p : {} , r {}'.format(precision,recall))
-Evaluator.draw_PR_cureve(y_pred=y_preds, y_true=y_trues, iou_min_threshold=IOU_THRESH_HOLD)
-# image.show(wait_key=0)
-cv2.imwrite('test.png', image.mat)
+#%%
+max(ious)

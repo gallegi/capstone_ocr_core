@@ -24,9 +24,9 @@ class Evaluator:
         plt.plot(thresholds_ls, recall_ls,
                  color=sns.color_palette()[1])  # plot the Recall curve as a fuction of the set threshold
 
-        Legend = plt.legend(('alpha', 'beta'), frameon=True, loc='best')
+        Legend = plt.legend(('Precision', 'Recall'), frameon=True, loc='best')
         Legend.get_frame().set_edgecolor('k')
-        plt.xlabel('IOU Threshold')
+        plt.xlabel('IOU')
         plt.ylabel('Proportion')
         plt.show()
 

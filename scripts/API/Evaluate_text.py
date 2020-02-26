@@ -1,7 +1,7 @@
 #%%
 import glob
 import os
-
+import matplotlib.pyplot as plt
 import chart_studio
 import numpy as np
 from plotly.graph_objs import *
@@ -15,9 +15,11 @@ from Entities.Box import Box
 from Entities.Image import Image
 from Entities.Predict import Predict
 import json_tricks as json
+import editdistance
+
 LABEL_SOURCE = 'data/0325updated.task1train(626p)/'
 json_paths = glob.glob('data/ocr_results_techchain/*.json')
-IOU_THRESH_HOLD = .3
+IOU_THRESH_HOLD = .8
 
 
 def read_label(path):
@@ -64,17 +66,10 @@ def read_data(path):
     return predicts,w,h
 
 
-def compute_acc_box(predicts, labels):
-    y_true = []
-    y_pred = []
-    _ious= []
-    uinon_areas = []
+def compute_acc_box(predicts, labels,image):
     overlap_areas = []
-    boxes = [x.box for x in predicts + labels]  # Union box
-    overlap_boxes = []
-
-    for box in boxes:
-        uinon_areas.append(box.w*box.h)
+    overlaps = []
+    editdistances = []
 
     for predict in predicts:
         for label in labels:
@@ -88,58 +83,45 @@ def compute_acc_box(predicts, labels):
         for label in labels:
             max_predict_iou = max(max_predict_iou, label.box.compute_compute_iou(predict.box))
             if max_predict_iou >= IOU_THRESH_HOLD:
-                overlap_boxes.append(predict.box)
+                overlaps.append((predict,label))
                 break
 
-    for box in overlap_boxes:
-        boxes.remove(box)
 
 
 
-    for box in boxes:
-        max_predict_iou = 0
-        index = None
-        for i, predict in enumerate(predicts):
-            _iou = box.compute_compute_iou(predict.box)
-            if _iou > max_predict_iou:
-                index = i
-                max_predict_iou = _iou
-        y_pred.append(max_predict_iou)
-        if index is not None:
-            del predicts[index]
+    for predict,label in overlaps:
+        edit_distance = editdistance.eval(predict.text,label.text)/max(len(predict.text),len(label.text))
+        editdistances.append(edit_distance)
 
-        max_label_iou = 0
-        index = None
-        for i, label in enumerate(labels):
-            _iou = box.compute_compute_iou(label.box)
-            if _iou > max_predict_iou:
-                index = i
-                max_label_iou = _iou
-        y_true.append(max_label_iou)
-        if index is not None:
-            del labels[index]
+        image.draw_box(predict.box,color=(0,255,0))
+        image.draw_box(label.box,color=(0,0,255))
+        image.show(wait_key=1)
+    # image.show()
 
-    y_true = np.array(y_true)
-    y_pred = np.array(y_pred)
-    y_true = y_true >= .9
-    return y_true, y_pred,sum(overlap_areas)/(sum(uinon_areas)-sum(overlap_areas))
+    # predict_text = ''.join([predict.text for predict in predicts])
+    # label_text = ''.join([label.text for label in labels])
+    # edit_distance = editdistance.eval(label_text, predict_text) / max(len(predict_text), len(label_text))
+    # editdistances.append(edit_distance)
+    return editdistances
 
 
 ious = []
 y_trues =np.array([])
 y_preds = np.array([])
-
-data = {}
+ious = []
+list_editdistances = []
+data = json.loads(open('data.json').read())
 # json_paths = json_paths[:10]
 
 for json_path in tqdm(json_paths):
     image_name = json_path.split(os.sep)[-1].split('.')[0]
     label_path = LABEL_SOURCE + '/{}.txt'.format(image_name)
 
-    # image = Image(LABEL_SOURCE + '/{}.jpg'.format(image_name))
+    image = Image(LABEL_SOURCE + '/{}.jpg'.format(image_name))
     labels = read_label(label_path)
     if labels is None:
         continue
+
     predicts, w, h = read_data(json_path)
     blank_label = Image(image=np.zeros(shape=(h, w)))
     blank_predict = Image(image=np.zeros(shape=(h, w)))
@@ -147,45 +129,27 @@ for json_path in tqdm(json_paths):
         blank_predict.draw_box(predict.box, color=1)
     for label in labels:
         blank_label.draw_box(label.box, color=1)
+    ious.append(data[image_name]['iou'])
+    _editdistance = compute_acc_box(predicts, labels,image=image)
+    list_editdistances += _editdistance
+    # list_editdistances.append(np.array(_editdistance).mean())
+    # print(editdistances)
 
-    y_true, y_pred,IOU = compute_acc_box(predicts, labels)
-    ious.append(IOU)
-    y_true = y_true.astype(int)
-    y_trues = np.append(y_trues,y_true)
-    y_preds = np.append(y_preds,y_pred)
-    iamge_name = json_path.split(os.sep)[-1].split('.')[0]
-    data[image_name] = {}
-    data[image_name]['ytrue'] = y_true
-    data[image_name]['ypred'] = y_pred
-    data[image_name]['iou'] = IOU
-
-    # data[image_name]['ypred'] = y_pred
-
-json.dump(data,open('data.json','w'))
+list_editdistances = np.array(list_editdistances)
+print('IOU THRESH HOLD : {} \t MEAN Edit distance : {}'.format(IOU_THRESH_HOLD,list_editdistances.mean()))
 #%%
+z = np.array([ious,list_editdistances])
+z = np.sort(z,1)
+plt.plot(z[1],z[0],color='b')
+# plt.plot(z[2],z[0],color='g')
 
-MEAN_IOU = np.array(ious).mean()
-print('MEAN IOU : {}'.format(MEAN_IOU))
+Legend = plt.legend(('Mean edit distance', 'Mean IOU'), frameon=True, loc='best')
+Legend.get_frame().set_edgecolor('k')
 
-y_preds = np.array(y_preds)
-y_trues = np.array(y_trues)
-_y_preds = y_preds >= IOU_THRESH_HOLD
-tn, fp, fn, tp = confusion_matrix(y_trues, _y_preds).ravel()
-precision = tp/(tp+fp)
-recall = tp/(tp+fn)
-
-image = Image(LABEL_SOURCE + '/{}.jpg'.format(image_name))
-image.draw_boxes([x.box for x in predicts], color=(0, 255, 0))
-image.draw_boxes([x.box for x in labels], color=(0, 0, 255))
-image.put_text('Precision : {}'.format(precision))
-image.put_text('Recall : {}'.format(recall))
-print('p : {} , r {}'.format(precision,recall))
-Evaluator.draw_PR_cureve(y_pred=y_preds, y_true=y_trues, iou_min_threshold=IOU_THRESH_HOLD)
-# image.show(wait_key=0)
-cv2.imwrite('test.png', image.mat)
+plt.xlabel('distance %')
+plt.ylabel('IOU %')
+plt.title('Evaluate speed - Model tiếng anh')
+plt.show()
 
 #%%
-import matplotlib.pyplot as plt
-#%%
-# plt.plot(ious)
-# plt.show()
+max(ious)
