@@ -13,7 +13,7 @@ class Box:
         if self.xmax is not None:
             self.w = self.xmax - self.xmin
         if self.ymax is not None:
-            self.h = self.ymin - self.ymin
+            self.h = self.ymax - self.ymin
 
 
 

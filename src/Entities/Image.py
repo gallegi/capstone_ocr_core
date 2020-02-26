@@ -10,6 +10,27 @@ class Image:
         else:
             self.mat = image
 
+        self._text_line_height = 20
+        self.text_location = [0,self._text_line_height]
+
+    def put_text(self,text,x = None,y=None,text_color=(0, 127, 0), box_color=(0, 255, 0), thickness=2, font_scale=1):
+
+        cv2.putText(self.mat, text,
+                    tuple(self.text_location),
+                    cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                    font_scale,
+                    text_color,
+                    2)
+
+        self.text_location[1]+=self._text_line_height
+        return self.mat
+
+    def draw_boxes(self,boxes, color=(0, 255, 0), thickness=2):
+        for box in boxes:
+            self.draw_box(box,color,thickness)
+
+        return self.mat
+
     def draw_box(self, box, color=(0, 255, 0), thickness=2):
         cv2.rectangle(self.mat, (box.xmin, box.ymin), (box.xmax, box.ymax), color, thickness)
         return self.mat
