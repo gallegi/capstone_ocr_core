@@ -56,9 +56,8 @@ def read_data(path):
 
         predict = Predict(box=box, text=line['text'], confidence=line['confidence'], time_predict=time_predict)
         predicts.append(predict)
-    w = data['output']['pages'][0]['width']
-    h = data['output']['pages'][0]['height']
-    return predicts,w,h
+
+    return predicts
 
 
 def compute_acc_box(predicts, labels, image=None):
@@ -96,7 +95,7 @@ def compute_acc_box(predicts, labels, image=None):
             if _iou > max_predict_iou:
                 index = i
                 max_label_iou = _iou
-        y_true.append(max_label_iou)
+    y_true.append(max_label_iou)
     if index is not None:
         del labels[index]
 
@@ -109,16 +108,16 @@ def compute_acc_box(predicts, labels, image=None):
 
 
 ious = []
-y_trues =np.array( [])
-y_preds = np.array( [])
-for json_path in tqdm(json_paths):
+y_trues = []
+y_preds = []
+for json_path in tqdm(json_paths[:3]):
     image_name = json_path.split(os.sep)[-1].split('.')[0]
     label_path = LABEL_SOURCE + '/{}.txt'.format(image_name)
 
-    # image = Image(LABEL_SOURCE + '/{}.jpg'.format(image_name))
+    image = Image(LABEL_SOURCE + '/{}.jpg'.format(image_name))
     labels = read_label(label_path)
 
-    predicts, w, h = read_data(json_path)
+    predicts = read_data(json_path)
 
     # ### DRAW LABEL
     # for label in labels:
@@ -128,7 +127,7 @@ for json_path in tqdm(json_paths):
     # for predict in predicts:
     #     image.draw_predict(predict,box_color=(0,0,255))
 
-    # h, w, c = image.mat.shape
+    h, w, c = image.mat.shape
 
     blank_label = Image(image=np.zeros(shape=(h, w)))
     blank_predict = Image(image=np.zeros(shape=(h, w)))
@@ -140,15 +139,16 @@ for json_path in tqdm(json_paths):
     IOU = Evaluator.compute_iou(blank_label.mat, blank_predict.mat)
     ious.append(IOU)
     y_true, y_pred = compute_acc_box(predicts, labels)
-    y_trues = np.append(y_trues,y_true)
-    y_preds=np.append(y_preds,y_pred)
+    y_trues.append(y_true)
+    y_preds.append(y_preds)
 
 
-
-
+y_preds = np.array(y_preds).flatten()
+y_trues = np.array(y_trues).flatten()
 
 
 MEAN_IOU = np.array(ious).mean()
+image.put_text('IOU : {}'.format(MEAN_IOU))
 print('MEAN IOU : {}'.format(MEAN_IOU))
 
 y_preds = np.array(y_preds)
@@ -158,7 +158,6 @@ tn, fp, fn, tp = confusion_matrix(y_trues, _y_preds).ravel()
 precision = tp/(tp+fp)
 recall = tp/(tp+fn)
 
-image = Image(LABEL_SOURCE + '/{}.jpg'.format(image_name))
 image.draw_boxes([x.box for x in predicts], color=(0, 255, 0))
 image.draw_boxes([x.box for x in labels], color=(0, 0, 255))
 image.put_text('Precision : {}'.format(precision))
