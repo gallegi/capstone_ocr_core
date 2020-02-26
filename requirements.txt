@@ -14,3 +14,4 @@ validators==0.14.1
 wrapt==1.11.2
 zipp==0.6.0
 Pillow==6.2.1
+requests
