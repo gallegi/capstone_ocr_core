@@ -464,38 +464,3 @@ def ocr_tesseract(mat, boxes=None, min_conf=0.2, draw_box=True, display_text=Tru
     return mat, None
 
 
-if __name__ == '__main__':
-    import glob
-    import sys
-
-
-    sys.path.append('src')
-    from tqdm import tqdm
-    import detection
-    import tools
-    from tensorflow.compat.v1 import ConfigProto
-    from tensorflow.compat.v1 import InteractiveSession
-
-    config = ConfigProto()
-    config.gpu_options.allow_growth = True
-    session = InteractiveSession(config=config)
-
-    detector = detection.Detector()
-    image_paths = glob.glob('test images/*')
-
-    for image_path in tqdm(image_paths):
-
-        image_name = image_path.split(os.sep)[-1]
-        image = tools.read(image_path)
-        h, w, c = image.shape
-        # image = cv2.resize(image, (int(w / 2), int(h / 2)))
-        if image is None: continue
-        boxes = detector.detect(images=[image])[0]
-        # mat1 = detection.drawBoxes(image=image, boxes=boxes)
-        # cv2.imshow('original', mat1)
-        mat = tools.image_deskew(image, boxes)
-        boxes = detector.detect(images=[mat])[0]
-        mat, d = ocr_tesseract(mat, boxes)
-        # cv2.imshow('mat', mat)
-        cv2.imwrite('test results/{}'.format(image_name), mat)
-        # cv2.waitKey(0)

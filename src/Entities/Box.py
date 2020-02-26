@@ -8,7 +8,7 @@ class Box:
         self.h = h
         if self.w is not None:
             self.xmax = self.xmin + w
-        if self.ymin is not None:
+        if self.h is not None :
             self.ymax = self.ymin + h
         if self.xmax is not None:
             self.w = self.xmax - self.xmin

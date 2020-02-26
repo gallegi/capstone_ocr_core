@@ -30,3 +30,7 @@ class Image:
                     lineType)
 
         return self.mat
+
+    def show(self, window_name='image', wait_key=0):
+        cv2.imshow(window_name, self.mat)
+        return cv2.waitKey(wait_key)
