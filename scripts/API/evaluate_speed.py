@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 
 LABEL_SOURCE = 'data/0325updated.task1train(626p)/'
 json_paths = glob.glob('data/ocr_results_techchain/*.json')
-IOU_THRESH_HOLD = .5
+IOU_THRESH_HOLD = .3
 
 
 def read_label(path):

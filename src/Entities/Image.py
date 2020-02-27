@@ -15,8 +15,11 @@ class Image:
 
     def put_text(self,text,x = None,y=None,text_color=(0, 127, 0), box_color=(0, 255, 0), thickness=2, font_scale=1):
 
+        if x and y is None :
+            x,y = tuple(self.text_location)
+
         cv2.putText(self.mat, text,
-                    tuple(self.text_location),
+                    (x,y),
                     cv2.FONT_HERSHEY_COMPLEX_SMALL,
                     font_scale,
                     text_color,

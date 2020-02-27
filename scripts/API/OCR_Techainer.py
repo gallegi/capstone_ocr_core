@@ -12,6 +12,6 @@ image_names = glob.glob(IMAGE_PATH + '/*.jpg')
 for image_path in tqdm(image_names):
     files = {'input': open(image_path, 'rb')}
     res = requests.post(URL, files=files,
-                        data={'kv_model': '', 'ocr_model': 'onmt', 'linecut_model': 'craft_tiny', 'alignment': 'true'})
+                        data={'kv_model': '', 'ocr_model': 'jp', 'linecut_model': 'craft_tiny', 'alignment': 'true'})
     text = res.content.decode()
     open(OUTPUT_PATH + '/{}.json'.format(image_path.split(os.sep)[-1].split('.')[0]), 'w').write(text)
