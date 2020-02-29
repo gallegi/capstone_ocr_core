@@ -18,3 +18,4 @@ requests
 pip install chart-studio
 plotly
 pandas
+ar-markers
