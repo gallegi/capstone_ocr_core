@@ -1,9 +1,9 @@
 import glob
 import json
-
+import pandas as pd
 from tqdm import tqdm
 
-json_paths = glob.glob('data/google_api_response/*.json')
+json_paths = glob.glob('/home/linhnq3/Disk2T/khanhtd2/utop/output/output OCR/*.json')
 
 igore_characters = ':;'
 
@@ -19,22 +19,46 @@ def hard_filter(recipe):
 
     return name
 
+seller_names = []
+recipees = []
+image_names =[]
+df = pd.DataFrame()
+df['image name'] = image_names
+df['seller name'] = seller_names
+df['recipe'] = recipees
+df.to_csv('seller_names.csv',encoding='utf-8',index=False)
 
-for path in json_paths:
+for path in tqdm(json_paths):
     data = json.loads(open(path).read())
     responses = data['responses']
-    for response in tqdm(responses):
+
+    seller_names = []
+    recipees = []
+    image_names = []
+
+    for response in responses:
         text = response['textAnnotations'][0]['description']
         text = text.lower()
         text = text.replace(' : ', ':').replace(': ', ':').replace(' :', ':')
-
         recipes = text.split('.jpg')
         for recipe in recipes:
-
+            seller_name = ''
             image_name = recipe.split('name:')[-1] + '.jpg'
             seller_name = recipe.split('ler:')[-1].split('\n')[0]
-            print('-' * 50)
             if len(seller_name) == 0:
-                print(recipe)
-            seller_name = 'UNKNOWN'
-            # print('Image NAME : {} SELLER NAME : {}'.format(image_name,seller_name))
+                seller_name = hard_filter(recipe)
+
+            image_names.append(image_name)
+            seller_names.append(seller_name)
+            if seller_name != '':
+                recipe = ''
+            recipees.append(recipe)
+
+    df = pd.DataFrame()
+    df['image name'] = image_names
+    df['seller name'] = seller_names
+    df['recipe'] = recipees
+    df.to_csv('seller_names.csv', encoding='utf-8', index=False,header=False,mode='a')
+
+
+
