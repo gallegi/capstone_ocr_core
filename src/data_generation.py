@@ -1,8 +1,6 @@
 # pylint: disable=invalid-name,too-many-locals,too-many-arguments,too-many-branches,too-many-statements,stop-iteration-return
 import sys
-
 sys.path.append('src')
-
 import itertools
 import math
 import os

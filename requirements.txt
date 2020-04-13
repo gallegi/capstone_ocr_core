@@ -15,7 +15,7 @@ wrapt==1.11.2
 zipp==0.6.0
 Pillow==6.2.1
 requests
-pip install chart-studio
+chart-studio
 plotly
 pandas
 ar-markers

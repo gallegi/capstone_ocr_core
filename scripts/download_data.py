@@ -1,9 +1,9 @@
 import json
 import sys
 
+sys.path.append('src')
 from data_generation import get_maximum_uniform_contour
 
-sys.path.append('src')
 import urllib.request
 import urllib.parse
 import concurrent.futures

@@ -10,13 +10,11 @@ from math import sqrt
 import cv2
 import imgaug
 import numpy as np
-import pytesseract
 import validators
 from PIL import ImageDraw, Image, ImageFont
 from scipy import spatial
 from shapely import geometry
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
     """Read a file into an image object
