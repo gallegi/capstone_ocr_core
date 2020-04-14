@@ -3,10 +3,12 @@ import string
 data_dir = 'data'
 # alphabet = sorted(list(set(
 #     string.digits.lower() + string.ascii_letters.lower() + '' + '-ọụạảãàáâậầấẩẫăắằặẳẵóòõỏôộổỗồốơờớợởỡéèẻẽêếềệểễúùủũưựữửừứíìịỉĩýỳỷỵỹđ:;,.')))
-alphabet = string.digits + string.ascii_lowercase + '[],.)(?!'
+# alphabet = string.digits + string.ascii_lowercase + '[],.)(?!'
 # alphabet += open('data/japanese_alphabet.txt',encoding='utf-8').read()
-# alphabet = list(set(alphabet))
-# alphabet.sort()
+
+alphabet = string.digits + string.ascii_lowercase
+alphabet = list(set(alphabet))
+alphabet.sort()
 alphabet = ''.join(alphabet)
 count = 0
 word_gen_model_path = data_dir + '/markov_wordgen.json'
