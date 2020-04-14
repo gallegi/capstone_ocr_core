@@ -23,8 +23,13 @@ config = ConfigProto()
 config.gpu_options.allow_growth = True
 session = InteractiveSession(config=config)
 
+model_name = 'vi_recognizer_v2'
+
 alphabet = ''.join(Config.alphabet)
 recognizer_alphabet = ''.join(sorted(set(alphabet.lower())))
+
+open('weights/{}.txt'.format(model_name),'w',encoding='utf-8').write(recognizer_alphabet)
+
 augmenter = imgaug.augmenters.Sequential([
     imgaug.augmenters.Multiply((0.9, 1.1)),
     imgaug.augmenters.GammaContrast(gamma=(0.5, 3.0)),
@@ -33,7 +38,7 @@ augmenter = imgaug.augmenters.Sequential([
 
 fonts = fonts.read_all_fonts()
 
-backgrounds = glob.glob(data_dir + '/backgrounds/*.jpg')
+backgrounds = Config.backgrounds
 
 text_generator = data_generation.get_text_generator(alphabet=alphabet)
 print('The first generated text is:', next(text_generator))
@@ -58,7 +63,7 @@ image_generators = [
         },
         backgrounds=current_backgrounds,
         font_size=(60, 120),
-        margin=10,
+        margin=50,
         rotationX=(-0.05, 0.05),
         rotationY=(-0.05, 0.05),
         rotationZ=(-15, 15), augmenter=augmenter
@@ -75,9 +80,8 @@ recognizer = recognition.Recognizer(
     alphabet=recognizer_alphabet,
     weights='kurapan',
     optimizer='adam',
-    include_top=False, attention=True,
+    include_top=False, attention=False,
 )
-
 for layer in recognizer.backbone.layers:
     layer.trainable = False
 
@@ -99,7 +103,7 @@ recognition_image_generators = [
 # plt.show()
 
 recognition_batch_size = 8
-recognizer_basepath = os.path.join('weights', f'recognizer')
+recognizer_basepath = os.path.join('weights', model_name)
 recognition_train_generator, recognition_val_generator, recogntion_test_generator = [
     recognizer.get_batch_generator(
         image_generator=image_generator,
@@ -109,7 +113,7 @@ recognition_train_generator, recognition_val_generator, recogntion_test_generato
 ]
 
 try:
-    recognizer.training_model.load_weights('weights/recognizer.h5')
+    recognizer.training_model.load_weights('weights/{}.h5'.format(model_name))
     print('weights loaded')
 except:
     print("Can't find or load weights")

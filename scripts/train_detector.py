@@ -18,14 +18,13 @@ import recognition
 from Config import data_dir
 import fonts
 import imgaug
-
-
 assert tf.test.is_gpu_available(), 'No GPU is available.'
 
 alphabet = ''.join(Config.alphabet)
+
 recognizer_alphabet = ''.join(sorted(set(alphabet.lower())))
 fonts = fonts.read_all_fonts()
-backgrounds = glob.glob(data_dir + '/backgrounds/*.jpg')
+backgrounds = Config.backgrounds
 augmenter = imgaug.augmenters.Sequential([
     imgaug.augmenters.Multiply((0.9, 1.1)),
     imgaug.augmenters.GammaContrast(gamma=(0.5, 3.0)),
@@ -33,7 +32,7 @@ augmenter = imgaug.augmenters.Sequential([
 ])
 
 text_generator = data_generation.get_text_generator(alphabet=alphabet)
-print('The first generated text is:', next(text_generator))
+# print('The first generated text is:', next(text_generator))
 
 
 def get_train_val_test_split(arr):
@@ -72,19 +71,6 @@ print('The first generated validation image (below) contains:', text)
 plt.imshow(image)
 
 detector = detection.Detector(weights='clovaai_general')
-# detector.model.summary()
-recognizer = recognition.Recognizer(
-    width=200,
-    height=31,
-    stn=True,
-    alphabet=recognizer_alphabet,
-    weights='kurapan',
-    optimizer='RMSprop',
-    include_top=False
-)
-for layer in recognizer.backbone.layers:
-    layer.trainable = False
-
 detector_batch_size = 1
 detector_basepath = os.path.join('weights', f'detector')
 detection_train_generator, detection_val_generator, detection_test_generator = [
@@ -95,7 +81,7 @@ detection_train_generator, detection_val_generator, detection_test_generator = [
 ]
 detector.model.fit_generator(
     generator=detection_train_generator,
-    steps_per_epoch=math.ceil(len(background_splits[0]) / detector_batch_size),
+    steps_per_epoch=500,
     epochs=1000,
     workers=0,
     callbacks=[
@@ -105,5 +91,5 @@ detector.model.fit_generator(
                                            save_weights_only=True)
     ],
     validation_data=detection_val_generator,
-    validation_steps=math.ceil(len(background_splits[1]) / detector_batch_size)
+    validation_steps=50
 )

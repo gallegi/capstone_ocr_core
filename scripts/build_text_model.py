@@ -6,10 +6,10 @@ from essential_generators import MarkovTextGenerator, MarkovWordGenerator
 import tools
 from Config import data_dir
 
-document_sub_folder = 'vi_documents'
+document_sub_folder = 'documents'
 
-if not os.path.isdir(data_dir + '/'+'vi_documents'):
-    os.mkdir(data_dir + '/documents')
+if not os.path.isdir(data_dir + '/'+document_sub_folder):
+    os.mkdir(data_dir +'/'+ document_sub_folder)
 
 files = glob.glob(data_dir + '/{}/**/*.txt'.format(document_sub_folder),recursive=True)
 if len(files) == 0:

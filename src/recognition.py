@@ -237,6 +237,7 @@ def build_model(alphabet,
                              name='reshape')(x)
 
     x = keras.layers.Dense(rnn_units[0], activation='relu', name='fc_9')(x)
+    backbone = keras.models.Model(inputs=inputs, outputs=x)
     if attention:
         x = attention_rnn(x)
     rnn_1_forward = keras.layers.LSTM(rnn_units[0],
@@ -259,7 +260,7 @@ def build_model(alphabet,
                                    return_sequences=True,
                                    name='lstm_11_back')(rnn_1_add)
     x = keras.layers.Concatenate()([rnn_2_forward, rnn_2_back])
-    backbone = keras.models.Model(inputs=inputs, outputs=x)
+
     x = keras.layers.Dropout(dropout, name='dropout')(x)
     x = keras.layers.Dense(len(alphabet) + 1,
                            kernel_initializer='he_normal',

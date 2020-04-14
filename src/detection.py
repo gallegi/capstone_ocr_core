@@ -568,7 +568,7 @@ class Detector:
         else:
             weights_path = None
         self.model = build_keras_model(weights_path=weights_path)
-        self.model.compile(loss='mse', optimizer=optimizer)
+        self.model.compile(loss='mse', optimizer=optimizer, metrics=['acc'])
 
     def get_batch_generator(self,
                             image_generator,

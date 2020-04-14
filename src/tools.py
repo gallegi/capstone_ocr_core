@@ -37,7 +37,7 @@ def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
         if image is None:
             return None
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    # return image
+
 
 
 def warpBox(image,

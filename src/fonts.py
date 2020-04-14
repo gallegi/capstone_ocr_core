@@ -1,11 +1,12 @@
+import glob
+import os
+
 import PIL
-import fontTools
 import tqdm
+from PIL import ImageFont
 from fontTools.ttLib import TTFont
 
-import data_generation
 import Config
-import glob
 
 
 def _font_supports_alphabet(filepath, alphabet):
@@ -16,10 +17,9 @@ def _font_supports_alphabet(filepath, alphabet):
         alphabet: A string of characters to check for.
     """
     font = TTFont(filepath)
-    # font = fontTools.ttLib.TTFont(filepath)
     if not all(any(ord(c) in table.cmap.keys() for table in font['cmap'].tables) for c in alphabet):
         return False
-    font = PIL.ImageFont.truetype(filepath)
+    font = ImageFont.truetype(filepath)
     try:
         for character in alphabet:
             font.getsize(character)
@@ -29,6 +29,11 @@ def _font_supports_alphabet(filepath, alphabet):
 
 
 def read_all_fonts(path=Config.FONT_PATH):
+    if os.path.isfile(path+'/fontlist.txt'):
+        print('Found fontlist.txt file, read font list from file')
+        lines = open(path+'/fontlist.txt','r',encoding='utf-8').read().split('\n')
+        return [Config.FONT_PATH + '/'+line for line in lines]
+
     fonts = [
         filepath for filepath in tqdm.tqdm(glob.glob(path + '/**/*.ttf', recursive=True))
         if (
@@ -39,3 +44,8 @@ def read_all_fonts(path=Config.FONT_PATH):
     print('Find {} valid fonts'.format(len(fonts)))
 
     return fonts
+
+
+if __name__ == '__main__':
+    fonts = read_all_fonts()
+    print(fonts)

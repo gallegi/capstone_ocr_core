@@ -446,15 +446,14 @@ def get_image_generator(height,
     alphabet = ''.join(font_groups.keys())
     assert len(set(alphabet)) == len(
         alphabet), 'Each character can appear in the subalphabet for only one font group.'
-    for text, background_index, current_font_groups in zip(
-            text_generator, itertools.cycle(range(len(backgrounds))),
+    for text, current_font_groups in zip(
+            text_generator,
             zip(*[
                 itertools.cycle([(subalphabet, font_filepath)
                                  for font_filepath in font_group_filepaths])
                 for subalphabet, font_group_filepaths in font_groups.items()
             ])):
-        if background_index == 0:
-            random.shuffle(backgrounds)
+
         current_font_groups = dict(current_font_groups)
         current_font_size = np.random.randint(low=font_size[0], high=font_size[1]) if isinstance(
             font_size, tuple) else font_size
@@ -463,9 +462,11 @@ def get_image_generator(height,
              if isinstance(rotation, tuple) else rotation) * np.pi / 180
             for rotation in [rotationX, rotationY, rotationZ]
         ]
-        current_background_filepath_or_array = backgrounds[background_index]
-        current_background = tools.read(current_background_filepath_or_array) if isinstance(
-            current_background_filepath_or_array, str) else current_background_filepath_or_array
+        current_background = None
+        while current_background is None:
+            current_background_filepath_or_array = random.choice(backgrounds)
+            current_background = tools.read(current_background_filepath_or_array) if isinstance(
+                current_background_filepath_or_array, str) else current_background_filepath_or_array
         if augmenter is not None:
             current_background = augmenter(images=[current_background])[0]
         if current_background.shape[0] != height or current_background.shape[1] != width:

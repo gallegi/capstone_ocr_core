@@ -10,7 +10,7 @@ from io import BytesIO
 import cv2
 import numpy as np
 import pytesseract
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tornado
 from PIL import Image, ImageDraw, ImageFont
 from pytesseract import Output
@@ -29,15 +29,16 @@ session = InteractiveSession(config=config)
 
 detector = detection.Detector()
 recognizer = recognition.Recognizer(
-    # width=200,
-    # height=31,
-    # stn=True,
-    # weights='kurapan',
-    # optimizer='RMSprop',
-    # include_top=1,
-    # attention=0
+    width=200,
+    height=31,
+    stn=True,
+    weights='kurapan',
+    optimizer='RMSprop',
+    include_top=0,
+    attention=1
 )
 
+recognizer.training_model.load_weights('weights/vi_recognizer_v2.h5')
 def load_graph(frozen_graph_filename, inputName, outputName):
     with tf.gfile.GFile(frozen_graph_filename, "rb") as f:
         graph_def = tf.GraphDef()
@@ -243,7 +244,7 @@ if __name__ == "__main__":
         mat = tools.read(path)
         h,w,c = mat.shape
 
-        mat = cv2.resize(mat, (int(w / 1.5), int(h / 1.5)))
+        mat = cv2.resize(mat, (int(w / 1.3), int(h / 1.3)))
 
         ## corner detection, refine corner
         doc_mat = find_document(mat)
@@ -263,5 +264,5 @@ if __name__ == "__main__":
 
         for text, box in predictions:
             plt.annotate(s=text, xy=box[0], xytext=box[0], size=3)
-        plt.savefig('test results/' + image_name, dpi=600, bbox_inches='tight')
+        plt.savefig('test results/' + image_name+ '.png', dpi=600, bbox_inches='tight')
         plt.clf()
