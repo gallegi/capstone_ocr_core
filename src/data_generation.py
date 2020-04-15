@@ -170,10 +170,14 @@ def convert_image_generator_to_recognizer_input(image_generator,
     """
     while True:
         margin = int(random.uniform(-1, 1) * margin)
+        image = None
+        lines = 0
+        count = 0
+
         image, lines = next(image_generator)
-        if len(lines) == 0:
-            continue
         subset = _strip_line(lines[np.argmax(list(map(len, lines)))][:max_string_length])
+
+
         points = np.concatenate(
             [coords[:2] for coords, _ in subset] +
             [np.array([coords[3], coords[2]]) for coords, _ in reversed(subset)]).astype('float32')
@@ -464,9 +468,13 @@ def get_image_generator(height,
         ]
         current_background = None
         while current_background is None:
+
             current_background_filepath_or_array = random.choice(backgrounds)
             current_background = tools.read(current_background_filepath_or_array) if isinstance(
                 current_background_filepath_or_array, str) else current_background_filepath_or_array
+            if current_background is None:
+                print('Cant read bg : {}'.format(current_background_filepath_or_array))
+
         if augmenter is not None:
             current_background = augmenter(images=[current_background])[0]
         if current_background.shape[0] != height or current_background.shape[1] != width:

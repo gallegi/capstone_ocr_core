@@ -82,8 +82,6 @@ recognizer = recognition.Recognizer(
     optimizer='adam',
     include_top=False, attention=False,
 )
-for layer in recognizer.backbone.layers:
-    layer.trainable = False
 
 max_length = 10
 
