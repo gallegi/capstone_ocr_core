@@ -23,7 +23,7 @@ config = ConfigProto()
 config.gpu_options.allow_growth = True
 session = InteractiveSession(config=config)
 
-model_name = 'vi_recognizer_v2'
+model_name = 'vi_recognizer_v2_attention'
 
 alphabet = ''.join(Config.alphabet)
 recognizer_alphabet = ''.join(sorted(set(alphabet.lower())))
@@ -78,9 +78,10 @@ recognizer = recognition.Recognizer(
     height=31,
     stn=True,
     alphabet=recognizer_alphabet,
-    weights='kurapan',
+    weights=None,
     optimizer='adam',
-    include_top=False, attention=False,
+    include_top=False,
+    attention=True,
 )
 
 max_length = 10
