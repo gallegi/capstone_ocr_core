@@ -7,7 +7,6 @@ import os
 import matplotlib.pyplot as plt
 import cv2
 import numpy as np
-import pytesseract
 import tensorflow.compat.v1 as tf
 import detection
 import recognition
@@ -158,20 +157,6 @@ def four_point_transform(image, pts):
     # return the warped image
     return warped
 
-
-def ocr(mat):
-    text = pytesseract.image_to_string(mat,lang='vie')
-    print(text)
-    keys = ['Tên','Địa chỉ','Số điện thoại','Số  thứ tự']
-    regs = ['hồ sơ của:[ \t_]*([^\n\r]*)','chỉ:\s*([^\n\r]*)','điện thoại:\s*([0-9]*)','thứ tự:\s*([0-9]*)']
-    data = {}
-    for i,key in enumerate(keys):
-        try:
-            data[key] = re.search(regs[i], text)[1]
-        except:
-            data[key] = ''
-
-    return mat,data
 
 def find_document(img):
     h,w,c = img.shape
