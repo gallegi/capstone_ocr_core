@@ -1,22 +1,25 @@
 # pylint: disable=invalid-name,too-many-locals,too-many-arguments,too-many-branches,too-many-statements,stop-iteration-return
-import sys
-sys.path.append('src')
-import itertools
-import math
 import os
-import random
+import math
+import glob
 import typing
+import random
+import zipfile
+import string
+import itertools
 
+from essential_generators import MarkovWordGenerator, MarkovTextGenerator
+
+from Config import *
+import cv2
+import tqdm
+import numpy as np
+import essential_generators
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
-import cv2
-import essential_generators
-import numpy as np
-from essential_generators import MarkovWordGenerator, MarkovTextGenerator
-
+import fontTools.ttLib
 import tools
-from Config import *
 
 LIGATURES = {'\U0000FB01': 'fi', '\U0000FB02': 'fl'}
 LIGATURE_STRING = ''.join(LIGATURES.keys())
@@ -67,18 +70,17 @@ def get_maximum_uniform_contour(image, fontsize, margin=0):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     blurred = cv2.blur(src=gray, ksize=(fontsize // 2, fontsize // 2))
     _, threshold = cv2.threshold(src=blurred, thresh=255 / 2, maxval=255, type=cv2.THRESH_BINARY)
-    contoursDark, _ = cv2.findContours(255 - threshold,
-                                       mode=cv2.RETR_TREE,
-                                       method=cv2.CHAIN_APPROX_SIMPLE)
-    contoursLight, _ = cv2.findContours(threshold,
-                                        mode=cv2.RETR_TREE,
-                                        method=cv2.CHAIN_APPROX_SIMPLE)
+    contoursDark = cv2.findContours(255 - threshold,
+                                    mode=cv2.RETR_TREE,
+                                    method=cv2.CHAIN_APPROX_SIMPLE)[-2]
+    contoursLight = cv2.findContours(threshold, mode=cv2.RETR_TREE,
+                                     method=cv2.CHAIN_APPROX_SIMPLE)[-2]
     areasDark = list(map(cv2.contourArea, contoursDark))
     areasLight = list(map(cv2.contourArea, contoursLight))
     maxDarkArea = max(areasDark) if areasDark else 0
     maxLightArea = max(areasLight) if areasLight else 0
 
-    if max(maxDarkArea, maxLightArea) < (4 * fontsize) ** 2:
+    if max(maxDarkArea, maxLightArea) < (4 * fontsize)**2:
         return None, None
 
     contour = None
@@ -94,6 +96,26 @@ def get_maximum_uniform_contour(image, fontsize, margin=0):
     return contour, isDark
 
 
+def font_supports_alphabet(filepath, alphabet):
+    """Verify that a font contains a specific set of characters.
+
+    Args:
+        filepath: Path to fsontfile
+        alphabet: A string of characters to check for.
+    """
+    if alphabet == '':
+        return True
+    font = fontTools.ttLib.TTFont(filepath)
+    if not all(any(ord(c) in table.cmap.keys() for table in font['cmap'].tables) for c in alphabet):
+        return False
+    font = PIL.ImageFont.truetype(filepath)
+    try:
+        for character in alphabet:
+            font.getsize(character)
+    # pylint: disable=bare-except
+    except:
+        return False
+    return True
 
 
 def get_text_generator(alphabet=None, lowercase=False, max_string_length=None):
@@ -122,6 +144,7 @@ def get_text_generator(alphabet=None, lowercase=False, max_string_length=None):
         yield sentence
 
 
+
 def _strip_line(line):
     """Modify a line so that spaces are excluded."""
     first_character_index = next(
@@ -141,16 +164,85 @@ def _strip_lines(lines):
     return lines
 
 
+def get_backgrounds(cache_dir=None):
+    """Download a set of pre-reviewed backgrounds.
+
+    Args:
+        cache_dir: Where to save the dataset. By default, data will be
+            saved to ~/.keras-ocr.
+
+    Returns:
+        A list of background filepaths.
+    """
+    if cache_dir is None:
+        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+    backgrounds_dir = os.path.join(cache_dir, 'backgrounds')
+    backgrounds_zip_path = tools.download_and_verify(
+        url='https://www.mediafire.com/file/l0pdx5j860kqmyr/backgrounds.zip/file',
+        sha256='f263ed0d55de303185cc0f93e9fcb0b13104d68ed71af7aaaa8e8c91389db471',
+        filename='backgrounds.zip',
+        cache_dir=cache_dir)
+    if len(glob.glob(os.path.join(backgrounds_dir, '*'))) != 1035:
+        with zipfile.ZipFile(backgrounds_zip_path) as zfile:
+            zfile.extractall(backgrounds_dir)
+    return glob.glob(os.path.join(backgrounds_dir, '*.jpg'))
+
+
+def get_fonts(cache_dir=None,
+              alphabet=string.ascii_letters + string.digits,
+              exclude_smallcaps=False):
+    """Download a set of pre-reviewed fonts.
+
+    Args:
+        cache_dir: Where to save the dataset. By default, data will be
+            saved to ~/.keras-ocr.
+        alphabet: An alphabet which we will use to exclude fonts
+            that are missing relevant characters. By default, this is
+            set to `string.ascii_letters + string.digits`.
+        exclude_smallcaps: If True, fonts that are known to use
+            the same glyph for lowercase and uppercase characters
+            are excluded.
+
+    Returns:
+        A list of font filepaths.
+    """
+    if cache_dir is None:
+        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+    fonts_zip_path = tools.download_and_verify(
+        url='https://www.mediafire.com/file/6v9r9oztyri0jrc/fonts.zip/file',
+        sha256='d4d90c27a9bc4bf8fff1d2c0a00cfb174c7d5d10f60ed29d5f149ef04d45b700',
+        filename='fonts.zip',
+        cache_dir=cache_dir)
+    fonts_dir = os.path.join(cache_dir, 'fonts')
+    if len(glob.glob(os.path.join(fonts_dir, '**/*.ttf'))) != 2746:
+        print('Unzipping fonts ZIP file.')
+        with zipfile.ZipFile(fonts_zip_path) as zfile:
+            zfile.extractall(fonts_dir)
+    font_filepaths = glob.glob(os.path.join(fonts_dir, '**/*.ttf'))
+    if exclude_smallcaps:
+        with open(
+                tools.download_and_verify(
+                    url='https://www.mediafire.com/file/v2o7hxn0mapne7i/fonts_smallcaps.txt/file',
+                    sha256='6531c700523c687f02852087530d1ab3c7cc0b59891bbecc77726fbb0aabe68e',
+                    filename='fonts_smallcaps.txt',
+                    cache_dir=cache_dir), 'r') as f:
+            smallcaps_fonts = f.read().split('\n')
+            font_filepaths = [
+                filepath for filepath in font_filepaths
+                if os.path.join(*filepath.split(os.sep)[-2:]) not in smallcaps_fonts
+            ]
+    if alphabet != '':
+        font_filepaths = [
+            filepath for filepath in tqdm.tqdm(font_filepaths, desc='Filtering fonts.')
+            if font_supports_alphabet(filepath=filepath, alphabet=alphabet)
+        ]
+    return font_filepaths
+
+
 def convert_lines_to_paragraph(lines):
     """Convert a series of lines, each consisting of
     (box, character) tuples, into a multi-line string."""
-    return '\n'.join([convert_line_to_sentence(line) for line in lines])
-
-
-def convert_line_to_sentence(line):
-    """Convert a line consisting of (box, character) tuples
-    into a line of text."""
-    return ''.join([c[-1] for c in line])
+    return '\n'.join([''.join([c[-1] for c in line]) for line in lines])
 
 
 def convert_image_generator_to_recognizer_input(image_generator,
@@ -169,31 +261,21 @@ def convert_image_generator_to_recognizer_input(image_generator,
         margin: The margin to apply around a single line.
     """
     while True:
-        margin = int(random.uniform(-1, 1) * margin)
-        image = None
-        lines = 0
-        count = 0
-
         image, lines = next(image_generator)
-        subset = _strip_line(lines[np.argmax(list(map(len, lines)))][:max_string_length])
-
-
-        points = np.concatenate(
-            [coords[:2] for coords, _ in subset] +
-            [np.array([coords[3], coords[2]]) for coords, _ in reversed(subset)]).astype('float32')
-        rectangle = cv2.minAreaRect(points)
-        box = cv2.boxPoints(rectangle)
-
-        # Put the points in clockwise order
-        box = np.array(np.roll(box, 4 - box.sum(axis=1).argmin(), 0))
-        sentence = convert_line_to_sentence(subset)
-        lines = [subset]
-        image = tools.warpBox(image=image,
-                              box=box,
-                              target_width=target_width,
-                              target_height=target_height,
-                              margin=margin)
-        yield image, sentence
+        if len(lines) == 0:
+            continue
+        for line in lines:
+            line = _strip_line(line[:max_string_length])
+            if not line:
+                continue
+            box, sentence = tools.combine_line(line)
+            crop = tools.warpBox(image=image,
+                                 box=box,
+                                 target_width=target_width,
+                                 target_height=target_height,
+                                 margin=margin,
+                                 skip_rotate=True)
+            yield crop, sentence
 
 
 def draw_text_image(text,
@@ -259,7 +341,7 @@ def draw_text_image(text,
                 subalphabet += LIGATURE_STRING
             fonts[subalphabet] = font
         for insert, search in LIGATURES.items():
-            for subalphabet in fonts.keys():
+            for subalphabet in fonts.keys()():
                 if insert in subalphabet:
                     text = text.replace(search, insert)
     character_font_pairs = [(character,
@@ -320,7 +402,7 @@ def draw_text_image(text,
         if out_of_space:
             break
         max_y = max(y + character_height + offset_y, max_y)
-        draw.text(xy=(x, y), text=character, fill=color + (255,), font=font)
+        draw.text(xy=(x, y), text=character, fill=color + (255, ), font=font)
         for subcharacter in subcharacters:
             lines[-1].append((np.array([[x + offset_x, y + offset_y],
                                         [x + dx + offset_x, y + offset_y], [x + dx + offset_x, y2],
@@ -450,14 +532,15 @@ def get_image_generator(height,
     alphabet = ''.join(font_groups.keys())
     assert len(set(alphabet)) == len(
         alphabet), 'Each character can appear in the subalphabet for only one font group.'
-    for text, current_font_groups in zip(
-            text_generator,
+    for text, background_index, current_font_groups in zip(
+            text_generator, itertools.cycle(range(len(backgrounds))),
             zip(*[
                 itertools.cycle([(subalphabet, font_filepath)
                                  for font_filepath in font_group_filepaths])
                 for subalphabet, font_group_filepaths in font_groups.items()
             ])):
-
+        if background_index == 0:
+            random.shuffle(backgrounds)
         current_font_groups = dict(current_font_groups)
         current_font_size = np.random.randint(low=font_size[0], high=font_size[1]) if isinstance(
             font_size, tuple) else font_size
@@ -466,15 +549,9 @@ def get_image_generator(height,
              if isinstance(rotation, tuple) else rotation) * np.pi / 180
             for rotation in [rotationX, rotationY, rotationZ]
         ]
-        current_background = None
-        while current_background is None:
-
-            current_background_filepath_or_array = random.choice(backgrounds)
-            current_background = tools.read(current_background_filepath_or_array) if isinstance(
-                current_background_filepath_or_array, str) else current_background_filepath_or_array
-            if current_background is None:
-                print('Cant read bg : {}'.format(current_background_filepath_or_array))
-
+        current_background_filepath_or_array = backgrounds[background_index]
+        current_background = tools.read(current_background_filepath_or_array) if isinstance(
+            current_background_filepath_or_array, str) else current_background_filepath_or_array
         if augmenter is not None:
             current_background = augmenter(images=[current_background])[0]
         if current_background.shape[0] != height or current_background.shape[1] != width:

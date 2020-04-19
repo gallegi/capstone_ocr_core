@@ -618,10 +618,19 @@ class Detector:
         images = [compute_input(tools.read(image)) for image in images]
         boxes = []
         for image in images:
+            resize_ratio = 0.5
+            h,w,c = image.shape
+            if h*w >= 1920*1080:
+                h=int(h*resize_ratio)
+                w=int(w*resize_ratio)
+                image = cv2.resize(image,(w,h))
+                boxes_in_image = getBoxes(self.model.predict(image[np.newaxis]),
+                                 detection_threshold=detection_threshold,
+                                 text_threshold=text_threshold,
+                                 link_threshold=link_threshold,
+                                 size_threshold=size_threshold)[0]
+                boxes_in_image = boxes_in_image/ resize_ratio
             boxes.append(
-                getBoxes(self.model.predict(image[np.newaxis]),
-                         detection_threshold=detection_threshold,
-                         text_threshold=text_threshold,
-                         link_threshold=link_threshold,
-                         size_threshold=size_threshold)[0])
+                boxes_in_image
+               )
         return boxes

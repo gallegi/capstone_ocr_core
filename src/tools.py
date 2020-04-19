@@ -1,19 +1,18 @@
 # pylint: disable=invalid-name,too-many-branches,too-many-statements,too-many-arguments
-import hashlib
-import io
 import os
+import io
 import typing
-import urllib.parse
+import hashlib
 import urllib.request
-from math import sqrt
+import urllib.parse
 
 import cv2
 import imgaug
 import numpy as np
 import validators
-from PIL import ImageDraw, Image, ImageFont
-from scipy import spatial
+import matplotlib.pyplot as plt
 from shapely import geometry
+from scipy import spatial
 
 
 def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
@@ -34,19 +33,32 @@ def read(filepath_or_buffer: typing.Union[str, io.BytesIO]):
         assert os.path.isfile(filepath_or_buffer), \
             'Could not find image at path: ' + filepath_or_buffer
         image = cv2.imread(filepath_or_buffer)
-        if image is None:
-            return None
     return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
+
+def get_rotated_width_height(box):
+    """
+    Returns the width and height of a rotated rectangle
+
+    Args:
+        box: A list of four points starting in the top left
+        corner and moving clockwise.
+    """
+    w = (spatial.distance.cdist(box[0][np.newaxis], box[1][np.newaxis], "euclidean") +
+         spatial.distance.cdist(box[2][np.newaxis], box[3][np.newaxis], "euclidean")) / 2
+    h = (spatial.distance.cdist(box[0][np.newaxis], box[3][np.newaxis], "euclidean") +
+         spatial.distance.cdist(box[1][np.newaxis], box[2][np.newaxis], "euclidean")) / 2
+    return int(w[0][0]), int(h[0][0])
 
 
 def warpBox(image,
             box,
-            target_height,
-            target_width,
+            target_height=None,
+            target_width=None,
             margin=0,
-            cval=(0, 0, 0),
-            return_transform=False):
+            cval=None,
+            return_transform=False,
+            skip_rotate=False):
     """Warp a boxed region in an image given by a set of four points into
     a rectangle with a specified width and height. Useful for taking crops
     of distorted or rotated text.
@@ -60,19 +72,35 @@ def warpBox(image,
         return_transform: Whether to return the transformation
             matrix with the image.
     """
-    box, _ = get_rotated_box(box)
-    _, _, w, h = cv2.boundingRect(box)
+    if cval is None:
+        cval = (0, 0, 0) if len(image.shape) == 3 else 0
+    if not skip_rotate:
+        box, _ = get_rotated_box(box)
+    w, h = get_rotated_width_height(box)
+    assert (
+            (target_width is None and target_height is None)
+            or (target_width is not None and target_height is not None)), \
+        'Either both or neither of target width and height must be provided.'
+    if target_width is None and target_height is None:
+        target_width = w
+        target_height = h
     scale = min(target_width / w, target_height / h)
     M = cv2.getPerspectiveTransform(src=box,
                                     dst=np.array([[margin, margin], [scale * w - margin, margin],
                                                   [scale * w - margin, scale * h - margin],
                                                   [margin, scale * h - margin]]).astype('float32'))
     crop = cv2.warpPerspective(image, M, dsize=(int(scale * w), int(scale * h)))
-    full = (np.zeros((target_height, target_width, 3)) + cval).astype('uint8')
+    target_shape = (target_height, target_width, 3) if len(image.shape) == 3 else (target_height,
+                                                                                   target_width)
+    full = (np.zeros(target_shape) + cval).astype('uint8')
     full[:crop.shape[0], :crop.shape[1]] = crop
     if return_transform:
         return full, M
     return full
+
+
+def flatten(list_of_lists):
+    return [item for sublist in list_of_lists for item in sublist]
 
 
 def combine_line(line):
@@ -85,16 +113,57 @@ def combine_line(line):
     Returns:
         A (box, text) tuple
     """
-    text = ''.join([character for _, character in line])
+    text = ''.join([character if character is not None else '' for _, character in line])
     box = np.concatenate([coords[:2] for coords, _ in line] +
                          [np.array([coords[3], coords[2]])
                           for coords, _ in reversed(line)]).astype('float32')
+    first_point = box[0]
     rectangle = cv2.minAreaRect(box)
     box = cv2.boxPoints(rectangle)
 
     # Put the points in clockwise order
-    box = np.array(np.roll(box, 4 - box.sum(axis=1).argmin(), 0))
+    box = np.array(np.roll(box, -np.linalg.norm(box - first_point, axis=1).argmin(), 0))
     return box, text
+
+
+def drawAnnotations(image, predictions, ax=None):
+    """Draw text annotations onto image.
+
+    Args:
+        image: The image on which to draw
+        predictions: The predictions as provided by `pipeline.recognize`.
+        ax: A matplotlib axis on which to draw.
+    """
+    if ax is None:
+        _, ax = plt.subplots()
+    ax.imshow(drawBoxes(image=image, boxes=predictions, boxes_format='predictions'))
+    predictions = sorted(predictions, key=lambda p: p[1][:, 1].min())
+    left = []
+    right = []
+    for word, box in predictions:
+        if box[:, 0].min() < image.shape[1] / 2:
+            left.append((word, box))
+        else:
+            right.append((word, box))
+    ax.set_yticks([])
+    ax.set_xticks([])
+    for side, group in zip(['left', 'right'], [left, right]):
+        for index, (text, box) in enumerate(group):
+            y = 1 - (index / len(group))
+            xy = box[0] / np.array([image.shape[1], image.shape[0]])
+            xy[1] = 1 - xy[1]
+            ax.annotate(s=text,
+                        xy=xy,
+                        xytext=(-0.05 if side == 'left' else 1.05, y),
+                        xycoords='axes fraction',
+                        arrowprops={
+                            'arrowstyle': '->',
+                            'color': 'r'
+                        },
+                        color='r',
+                        fontsize=14,
+                        horizontalalignment='right' if side == 'left' else 'left')
+    return ax
 
 
 def drawBoxes(image, boxes, color=(255, 0, 0), thickness=5, boxes_format='boxes'):
@@ -163,7 +232,8 @@ def augment(boxes,
             image=None,
             boxes_format='boxes',
             image_shape=None,
-            area_threshold=0.5):
+            area_threshold=0.5,
+            min_area=None):
     """Augment an image and associated boxes together.
 
     Args:
@@ -174,6 +244,7 @@ def augment(boxes,
         image_shape: The shape of the input image if no image will be provided.
         area_threshold: Fraction of bounding box that we require to be
             in augmented image to include it.
+        min_area: The minimum area for a character to be included.
     """
     if image is None and image_shape is None:
         raise ValueError('One of "image" or "image_shape" must be provided.')
@@ -198,7 +269,8 @@ def augment(boxes,
         clipped[:, 0] = clipped[:, 0].clip(0, image_augmented_shape[1])
         clipped[:, 1] = clipped[:, 1].clip(0, image_augmented_shape[0])
         area_after = cv2.contourArea(np.int32(clipped)[:, np.newaxis, :])
-        return (area_after / area_before) >= area_threshold, clipped
+        return ((area_after / area_before) >= area_threshold) and (min_area is None or
+                                                                   area_after > min_area), clipped
 
     def augment_box(box):
         return augmenter.augment_keypoints(
@@ -226,6 +298,46 @@ def augment(boxes,
     else:
         raise NotImplementedError(f'Unsupported boxes format: {boxes_format}')
     return image_augmented, boxes_augmented
+
+
+def pad(image, width: int, height: int, cval: int = 255):
+    """Pad an image to a desired size. Raises an exception if image
+    is larger than desired size.
+
+    Args:
+        image: The input image
+        width: The output width
+        height: The output height
+        cval: The value to use for filling the image.
+    """
+    if len(image.shape) == 3:
+        output_shape = (height, width, image.shape[-1])
+    else:
+        output_shape = (height, width)
+    assert height >= output_shape[0], 'Input height must be less than output height.'
+    assert width >= output_shape[1], 'Input width must be less than output width.'
+    padded = np.zeros(output_shape, dtype=image.dtype) + cval
+    padded[:image.shape[0], :image.shape[1]] = image
+    return padded
+
+
+def resize_image(image, max_scale, max_size):
+    """Obtain the optimal resized image subject to a maximum scale
+    and maximum size.
+
+    Args:
+        image: The input image
+        max_scale: The maximum scale to apply
+        max_size: The maximum size to return
+    """
+    if max(image.shape) * max_scale > max_size:
+        # We are constrained by the maximum size
+        scale = max_size / max(image.shape)
+    else:
+        # We are contrained by scale
+        scale = max_scale
+    return cv2.resize(image,
+                      dsize=(int(image.shape[1] * scale), int(image.shape[0] * scale))), scale
 
 
 # pylint: disable=too-many-arguments
@@ -307,6 +419,11 @@ def sha256sum(filename):
     return h.hexdigest()
 
 
+def get_default_cache_dir():
+    return os.environ.get('KERAS_OCR_CACHE_DIR', os.path.expanduser(os.path.join('~',
+                                                                                 '.keras-ocr')))
+
+
 def download_and_verify(url, sha256=None, cache_dir=None, verbose=True, filename=None):
     """Download a file to a cache directory and verify it with a sha256
     hash.
@@ -322,7 +439,7 @@ def download_and_verify(url, sha256=None, cache_dir=None, verbose=True, filename
             derived from the URL.
     """
     if cache_dir is None:
-        cache_dir = os.path.expanduser(os.path.join('~', '.keras-ocr'))
+        cache_dir = get_default_cache_dir()
     if filename is None:
         filename = os.path.basename(urllib.parse.urlparse(url).path)
     filepath = os.path.join(cache_dir, filename)
@@ -349,10 +466,12 @@ def get_rotated_box(
         top-right, bottom-right, bottom-left order along
         with the angle of rotation about the bottom left corner.
     """
-    mp = geometry.MultiPoint(points=points)
-
-    pts = np.array(list(zip(*mp.minimum_rotated_rectangle.exterior.xy)))[:-1]  # noqa: E501
-
+    try:
+        mp = geometry.MultiPoint(points=points)
+        pts = np.array(list(zip(*mp.minimum_rotated_rectangle.exterior.xy)))[:-1]  # noqa: E501
+    except AttributeError:
+        # There weren't enough points for the minimum rotated rectangle function
+        pts = points
     # The code below is taken from
     # https://github.com/jrosebr1/imutils/blob/master/imutils/perspective.py
 
@@ -386,79 +505,20 @@ def get_rotated_box(
     return pts, rotation
 
 
-def rotateImage(image, angle):
-    image_center = tuple(np.array(image.shape[1::-1]) / 2)
-    rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
-    result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
-    return result
+def fix_line(line):
+    """Given a list of (box, character) tuples, return a revised
+    line with a consistent ordering of left-to-right or top-to-bottom,
+    with each box provided with (top-left, top-right, bottom-right, bottom-left)
+    ordering.
 
-
-def image_deskew(mat, boxes):
-    colors = [[0, 255, 0], [255, 127, 0], [127, 127, 127], [0, 0, 255]]
-    mat = cv2.cvtColor(mat, cv2.COLOR_RGB2BGR)
-    degrees = []
-    h, w, c = mat.shape
-    blank = np.zeros(shape=(h, w), dtype=np.uint8)
-
-    for box in boxes:
-        # for i, point in enumerate(box):
-        #     cv2.circle(mat, tuple(point.astype(int)), 3, colors[i], -1)
-        x1, y1 = (box[0] + box[3]) / 2
-        x2, y2 = (box[1] + box[2]) / 2
-
-        cv2.line(blank, (x1, y1), (x2, y2), 255, 1)
-
-        sin_alpha = abs(y1 - y2) / sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
-        alpha = np.arcsin(sin_alpha)
-        degree = alpha * np.pi / 180
-        degrees.append(degree)
-    degrees = np.array(degrees)
-    mean_degrees = degrees.mean()
-
-    coords = np.column_stack(np.where(blank > 0))
-    angle = cv2.minAreaRect(coords)[-1]
-
-    if angle < -45:
-        angle = -(90 + angle)
-    else:
-        angle = -angle
-
-    (h, w) = mat.shape[:2]
-    center = (w // 2, h // 2)
-    M = cv2.getRotationMatrix2D(center, angle, 1.0)
-    rotated = cv2.warpAffine(mat, M, (w, h),
-                             flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
-
-    print(angle)
-    return rotated
-
-
-def ocr_tesseract(mat, boxes=None, min_conf=0.2, draw_box=True, display_text=True):
-    fontpath = "AlegreyaSansSC-Medium.otf"
-    font = ImageFont.truetype(fontpath, 20)
-    mat_ymin = 100000
-    mat_ymax = -1
-    if boxes is not None:
-        crops = []
-        image = mat
-        for box in boxes:
-            xmin, ymin, xmax, ymax = min(box[:, 0]), min(box[:, 1]), max(box[:, 0]), max(box[:, 1])
-            mat_ymin = min(mat_ymin, ymin)
-            mat_ymax = max(mat_ymax, ymax)
-            h, w = ymax - ymin, xmax - xmin
-            crop = tools.warpBox(image=image,
-                                 box=box,margin=5,
-                                 target_height=int(h),
-                                 target_width=int(w))
-            text = pytesseract.image_to_string(crop, lang='vie_best', config='--psm 8')
-            img_pil = Image.fromarray(mat)
-            draw = ImageDraw.Draw(img_pil)
-            draw.text((xmin, ymin + 10), text, font=font, fill=(0, 0, 255, 255))
-            mat = np.array(img_pil)
-
-        mat = mat[int(mat_ymin):int(mat_ymax),:,:]
-    else:
-        print(pytesseract.image_to_string(mat, lang='vie_best'))
-    return mat, None
-
-
+    Returns:
+        A tuple that is the fixed line as well as a string indicating
+        whether the line is horizontal or vertical.
+    """
+    line = [(get_rotated_box(box)[0], character) for box, character in line]
+    centers = np.array([box.mean(axis=0) for box, _ in line])
+    sortedx = centers[:, 0].argsort()
+    sortedy = centers[:, 1].argsort()
+    if np.diff(centers[sortedy][:, 1]).sum() > np.diff(centers[sortedx][:, 0]).sum():
+        return [line[idx] for idx in sortedy], 'vertical'
+    return [line[idx] for idx in sortedx], 'horizontal'

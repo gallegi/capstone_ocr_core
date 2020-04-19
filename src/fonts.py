@@ -42,7 +42,7 @@ def read_all_fonts(path=Config.FONT_PATH):
         )
     ]
     print('Find {} valid fonts'.format(len(fonts)))
-
+    
     return fonts
 
 

@@ -8,7 +8,7 @@ sys.path.append('src')
 import Config
 import tensorflow as tf
 import sklearn.model_selection
-
+import numpy as np
 import data_generation
 # import detection
 import recognition
@@ -28,7 +28,7 @@ model_name = 'vi_recognizer_v2'
 alphabet = ''.join(Config.alphabet)
 recognizer_alphabet = ''.join(sorted(set(alphabet.lower())))
 
-open('weights/{}.txt'.format(model_name),'w',encoding='utf-8').write(recognizer_alphabet)
+# open('weights/{}.txt'.format(model_name),'w',encoding='utf-8').write(recognizer_alphabet)
 
 augmenter = imgaug.augmenters.Sequential([
     imgaug.augmenters.Multiply((0.9, 1.1)),
@@ -95,11 +95,6 @@ recognition_image_generators = [
     ) for image_generator in image_generators
 ]
 
-# image, text = next(recognition_image_generators[1])
-# print('This image contains:', text)
-# plt.imshow(image)
-# plt.show()
-
 recognition_batch_size = 8
 recognizer_basepath = os.path.join('weights', model_name)
 recognition_train_generator, recognition_val_generator, recogntion_test_generator = [
@@ -109,6 +104,7 @@ recognition_train_generator, recognition_val_generator, recogntion_test_generato
         lowercase=True
     ) for image_generator in recognition_image_generators
 ]
+
 
 try:
     recognizer.training_model.load_weights('weights/{}.h5'.format(model_name))
@@ -121,16 +117,7 @@ recognizer.training_model.fit_generator(
     epochs=1000,
     steps_per_epoch=1000,
     callbacks=[
-        # tf.keras.callbacks.EarlyStopping(restore_best_weights=True, patience=25),
         tf.keras.callbacks.ModelCheckpoint(filepath=f'{recognizer_basepath}.h5', monitor='acc', save_best_only=True,
                                            save_weights_only=True)
     ],
 )
-
-# image, text, lines = next(image_generators[0])
-# boxes = detector.detect(images=[image])[0]
-# drawn = detection.drawBoxes(image=image, boxes=boxes)
-# predictions = recognizer.recognize_from_boxes(boxes=boxes, image=image)
-# print(text, [text for text, box in predictions])
-# plt.imshow(drawn)
-# plt.show()

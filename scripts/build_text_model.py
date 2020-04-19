@@ -23,7 +23,7 @@ print('Found : {} documents'.format(len(files)))
 
 text = ''
 for file in files:
-    text += open(file).read()
+    text += open(file,encoding='utf-8').read()
 
 # text = text[:int(len(text)*.1)]
 

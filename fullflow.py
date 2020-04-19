@@ -35,7 +35,7 @@ recognizer = recognition.Recognizer(
     weights='kurapan',
     optimizer='RMSprop',
     include_top=0,
-    attention=1
+    attention=0
 )
 
 recognizer.training_model.load_weights('weights/vi_recognizer_v2.h5')
@@ -166,23 +166,6 @@ def four_point_transform(image, pts):
     return warped
 
 
-def ocr_full(rgb, min_conf=0.7, draw_box=False, display_text=False):
-    d = pytesseract.image_to_data(rgb, lang='vie', output_type=Output.DICT)
-    print('OCR tesseract finished')
-    n_boxes = len(d['level'])
-    for i in range(n_boxes):
-        if int(d['conf'][i]) > min_conf * 100:
-            text = d['text'][i]
-            (x, y, w, h) = (d['left'][i], d['top'][i], d['width'][i], d['height'][i])
-            if draw_box:
-                cv2.rectangle(rgb, (x, y), (x + w, y + h), (0, 255, 0), 1)
-            if display_text:
-                img_pil = Image.fromarray(rgb)
-                draw = ImageDraw.Draw(img_pil)
-                draw.text((x, y + 10), text, font=font, fill=(0, 0, 255, 255))
-                rgb = np.array(img_pil)
-    return rgb, d
-
 def ocr(mat):
     text = pytesseract.image_to_string(mat,lang='vie')
     print(text)
@@ -238,22 +221,17 @@ if __name__ == "__main__":
 
     image_paths = glob.glob('test images/*')
     for path in image_paths:
-
-
         ## Read image
         mat = tools.read(path)
         h,w,c = mat.shape
 
-        mat = cv2.resize(mat, (int(w / 1.3), int(h / 1.3)))
-
         ## corner detection, refine corner
-        doc_mat = find_document(mat)
+        # doc_mat = find_document(mat)
+        doc_mat = mat
         ## Detect text box craft
         boxes = detector.detect(images=[doc_mat])[0]
         ## Recognize CRNN
         predictions = recognizer.recognize_from_boxes(image=doc_mat, boxes=boxes)
-
-
         ## Display
 
 

@@ -279,8 +279,8 @@ def build_model(alphabet,
     training_model = keras.models.Model(inputs=[model.input, labels, input_length, label_length],
                                         outputs=loss)
 
-    for layer in backbone.layers:
-        layer.trainable = False
+    # for layer in backbone.layers:
+    #     layer.trainable = False
 
     training_model.compile(loss=lambda _, y_pred: y_pred, optimizer=optimizer, metrics=['acc'])
     return backbone, model, training_model, prediction_model
