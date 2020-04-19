@@ -204,8 +204,7 @@ if __name__ == "__main__":
         h,w,c = mat.shape
 
         ## corner detection, refine corner
-        # doc_mat = find_document(mat)
-        doc_mat = mat
+        doc_mat = find_document(mat)
         ## Detect text box craft
         boxes = detector.detect(images=[doc_mat])[0]
         ## Recognize CRNN
