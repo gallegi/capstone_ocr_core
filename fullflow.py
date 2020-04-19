@@ -5,17 +5,10 @@ import sys
 sys.path.append('src')
 import os
 import matplotlib.pyplot as plt
-from imageio import imread
-from io import BytesIO
 import cv2
 import numpy as np
 import pytesseract
 import tensorflow.compat.v1 as tf
-import tornado
-from PIL import Image, ImageDraw, ImageFont
-from pytesseract import Output
-from tornado.web import RequestHandler
-from tqdm import tqdm
 import detection
 import recognition
 import tools
