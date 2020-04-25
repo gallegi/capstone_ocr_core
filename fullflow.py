@@ -2,6 +2,9 @@ import glob
 import re
 import time
 import sys
+
+from tqdm import tqdm
+
 sys.path.append('src')
 import os
 import matplotlib.pyplot as plt
@@ -18,7 +21,6 @@ config = ConfigProto()
 config.gpu_options.allow_growth = True
 session = InteractiveSession(config=config)
 
-
 detector = detection.Detector()
 recognizer = recognition.Recognizer(
     width=200,
@@ -31,6 +33,8 @@ recognizer = recognition.Recognizer(
 )
 
 recognizer.training_model.load_weights('weights/vi_recognizer_v2.h5')
+
+
 def load_graph(frozen_graph_filename, inputName, outputName):
     with tf.gfile.GFile(frozen_graph_filename, "rb") as f:
         graph_def = tf.GraphDef()
@@ -159,7 +163,7 @@ def four_point_transform(image, pts):
 
 
 def find_document(img):
-    h,w,c = img.shape
+    h, w, c = img.shape
     data = getCorners(img, sessCorners, xCorners, yCorners)
     corner_address = []
     counter = 0
@@ -188,7 +192,6 @@ def _process(origin):
     return data, image_path, img
 
 
-
 if __name__ == "__main__":
 
     graph, x, y = load_graph('weights/cornerRefiner.pb', "Corner/inputTensor", "Corner/outputTensor")
@@ -196,28 +199,36 @@ if __name__ == "__main__":
                                                   "FCLayers/outputTensor")
     sess = tf.Session(graph=graph)
     sessCorners = tf.Session(graph=graphCorners)
-
+    scale = 1
+    max_size = 1920
     image_paths = glob.glob('test images/*')
-    for path in image_paths:
+    for path in tqdm(image_paths):
         ## Read image
         mat = tools.read(path)
-        h,w,c = mat.shape
+        h, w, c = mat.shape
 
         ## corner detection, refine corner
-        doc_mat = find_document(mat)
+        # doc_mat = find_document(mat)
+        doc_mat = mat
+        images = [doc_mat]
         ## Detect text box craft
-        boxes = detector.detect(images=[doc_mat])[0]
+        boxes = detector.detect(images=images)
+
         ## Recognize CRNN
-        predictions = recognizer.recognize_from_boxes(image=doc_mat, boxes=boxes)
+        prediction_groups = recognizer.recognize_from_boxes(images=images, box_groups=boxes)
         ## Display
 
-
         image_name = path.split(os.sep)[-1]
-        canvas = detection.drawBoxes(image=doc_mat, boxes=boxes)
 
+        predictions = [list(zip(predictions, boxes)) for predictions, boxes in zip(prediction_groups, boxes)]
+
+        lines = tools.combine_to_line(predictions[0])
+        print('\n'.join(lines))
+
+        canvas = detection.drawBoxes(image=doc_mat, boxes=boxes[0])
         plt.imshow(canvas)
 
-        for text, box in predictions:
+        for text, box in predictions[0]:
             plt.annotate(s=text, xy=box[0], xytext=box[0], size=3)
-        plt.savefig('test results/' + image_name+ '.png', dpi=600, bbox_inches='tight')
+        plt.savefig('test results/' + image_name + '.png', dpi=600, bbox_inches='tight')
         plt.clf()

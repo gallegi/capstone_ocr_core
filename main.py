@@ -1,67 +1,63 @@
+import time
+
+import tornado
+from imageio import imread
 from tornado.web import RequestHandler, Application
 from tornado.ioloop import IOLoop
 import json
+import cv2
 from PIL import Image
 import base64
 import io
 import numpy as np
+
+from Controller.AIController import AIController
+from Controller.OcrController import OcrController
 from src.recognizer_master import RecognizerMaster
 import tensorflow as tf
 import traceback
 import re
-global recognizer_master
-graph = tf.compat.v1.get_default_graph()
-with graph.as_default():
-    recognizer_master = RecognizerMaster()
+
+ocr_controller = OcrController()
 
 
 class OcrHandler(RequestHandler):
 
-    def set_default_headers(self):
-        self.set_header("Access-Control-Allow-Origin", "*")
-        self.set_header("Access-Control-Allow-Headers",
-                        "authorization, Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With, Access-Control-Allow-Origin")
-        self.set_header("Access-Control-Allow-Methods", "GET,PUT,POST,OPTIONS")
+    def process(self, mat, ocr_type=0):
+        data = ocr_controller.ocr(mat, ocr_type)
+        return data
 
-    def options(self):
-        self.set_status(204)
-        self.finish()
+    def get(self):
+        self.render("public/index.html", image_src='', data={})
 
-    def response(self, code, message):
-        self.set_status(code)
-        self.write(message)
-
-    def post(self):
+    def post(self, *args, **kwargs):
+        if len(self.request.files) == 0:
+            self.render('public/index.html', image_src='', data={})
+            return
         try:
-            global recognizer_master
-            with graph.as_default():
-                request_data = json.loads(self.request.body.decode())
-                image_input = request_data['image']
-
-                with open('log.txt', 'a') as f:
-                    f.write(image_input + '\n')
-
-                pattern = 'data:image\/[^;]+;base64,'
-                base64_str = re.sub(pattern, '', image_input)
-
-                base64_decoded = base64.b64decode(base64_str)
-                image = Image.open(io.BytesIO(base64_decoded))
-                image_np = np.array(image)
-                result = recognizer_master.recognizer_image(image_np)
-                self.set_status(200)
-                self.write(result)
+            file_body = self.request.files['file1'][0]['body']
+            ocr_type = 1
+            if 'ocr_type' in self.request.arguments:
+                ocr_type = int(self.request.arguments['ocr_type'][0].decode())
+            mat = imread(io.BytesIO(file_body))
+            mat = cv2.cvtColor(mat, cv2.COLOR_RGB2BGR)
+            img, data = self.process(mat, ocr_type)
+            image_path = 'public/demo_{}.jpg'.format(time.strftime("%Y%m%d-%H%M%S"))
+            cv2.imwrite(image_path, img)
+            self.render('public/index.html', image_src=image_path, data=data)
         except:
-            print(traceback.format_exc())
-            self.response(500, {"message": "Internal server error!"})
+            self.render('public/index.html', image_src='', data={})
 
 
 def make_app():
-    routes = [('/api/ocr/ocr_cmnd', OcrHandler)]
+    routes = [(r'/', OcrHandler),
+              (r'/(?:public)/(.*)', tornado.web.StaticFileHandler, {'path': './public'}),
+              ]
     return Application(routes)
 
 
 if __name__ == '__main__':
     app = make_app()
     print('Start serving')
-    app.listen(3100)
+    app.listen(8888)
     IOLoop.current().start()

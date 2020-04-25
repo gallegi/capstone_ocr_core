@@ -150,8 +150,37 @@ def map_to_rgb(y):
         (y.shape[0], y.shape[1], 1))], axis=-1) * 255).astype('uint8')
 
 
-def drawBoxes(image, boxes, color=(0, 255, 0), thickness=1):
+def drawBoxes(image, boxes, color=(255, 0, 0), thickness=5, boxes_format='boxes'):
+    """Draw boxes onto an image.
+    Args:
+        image: The image on which to draw the boxes.
+        boxes: The boxes to draw.
+        color: The color for each box.
+        thickness: The thickness for each box.
+        boxes_format: The format used for providing the boxes. Options are
+            "boxes" which indicates an array with shape(N, 4, 2) where N is the
+            number of boxes and each box is a list of four points) as provided
+            by `keras_ocr.detection.Detector.detect`, "lines" (a list of
+            lines where each line itself is a list of (box, character) tuples) as
+            provided by `keras_ocr.data_generation.get_image_generator`,
+            or "predictions" where boxes is by itself a list of (word, box) tuples
+            as provided by `keras_ocr.pipeline.Pipeline.recognize` or
+            `keras_ocr.recognition.Recognizer.recognize_from_boxes`.
+    """
+    if len(boxes) == 0:
+        return image
     canvas = image.copy()
+    if boxes_format == 'lines':
+        revised_boxes = []
+        for line in boxes:
+            for box, _ in line:
+                revised_boxes.append(box)
+        boxes = revised_boxes
+    if boxes_format == 'predictions':
+        revised_boxes = []
+        for _, box in boxes:
+            revised_boxes.append(box)
+        boxes = revised_boxes
     for box in boxes:
         cv2.polylines(img=canvas,
                       pts=box[np.newaxis].astype('int32'),
@@ -608,7 +637,7 @@ class Detector:
                detection_threshold=0.7,
                text_threshold=0.4,
                link_threshold=0.4,
-               size_threshold=10):
+               size_threshold=10,**kwargs):
         """Recognize the text in a set of images.
 
         Args:
@@ -624,13 +653,19 @@ class Detector:
                 h=int(h*resize_ratio)
                 w=int(w*resize_ratio)
                 image = cv2.resize(image,(w,h))
-                boxes_in_image = getBoxes(self.model.predict(image[np.newaxis]),
+            boxes_in_image = getBoxes(self.model.predict(image[np.newaxis]),
                                  detection_threshold=detection_threshold,
                                  text_threshold=text_threshold,
                                  link_threshold=link_threshold,
                                  size_threshold=size_threshold)[0]
-                boxes_in_image = boxes_in_image/ resize_ratio
+            boxes_in_image = boxes_in_image/ resize_ratio
             boxes.append(
                 boxes_in_image
                )
+        # images = [compute_input(tools.read(image)) for image in images]
+        # boxes = getBoxes(self.model.predict(np.array(images), **kwargs),
+        #                  detection_threshold=detection_threshold,
+        #                  text_threshold=text_threshold,
+        #                  link_threshold=link_threshold,
+        #                  size_threshold=size_threshold)
         return boxes

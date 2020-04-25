@@ -103,27 +103,53 @@ def flatten(list_of_lists):
     return [item for sublist in list_of_lists for item in sublist]
 
 
-def combine_line(line):
-    """Combine a set of boxes in a line into a single bounding
-    box.
+def isOnSameLine(boxOne, boxTwo):
+    boxOne = boxOne[1]
+    boxTwo = boxTwo[1]
+    boxOneStartY = boxOne[0,1]
+    boxOneEndY = boxOne[2,1]
+    boxTwoStartY = boxTwo[0,1]
+    boxTwoEndY = boxTwo[2,1]
+    if((boxTwoStartY <= boxOneEndY and boxTwoStartY >= boxOneStartY)
+            or(boxTwoEndY <= boxOneEndY and boxTwoEndY >= boxOneStartY)
+            or(boxTwoEndY >= boxOneEndY and boxTwoStartY <= boxOneStartY)):
+        return True
+    else:
+        return False
 
-    Args:
-        line: A list of (box, character) entries
+def combine_to_line(predictions):
+    temp = []
+    i = 0
 
-    Returns:
-        A (box, text) tuple
-    """
-    text = ''.join([character if character is not None else '' for _, character in line])
-    box = np.concatenate([coords[:2] for coords, _ in line] +
-                         [np.array([coords[3], coords[2]])
-                          for coords, _ in reversed(line)]).astype('float32')
-    first_point = box[0]
-    rectangle = cv2.minAreaRect(box)
-    box = cv2.boxPoints(rectangle)
+    lines = []
 
-    # Put the points in clockwise order
-    box = np.array(np.roll(box, -np.linalg.norm(box - first_point, axis=1).argmin(), 0))
-    return box, text
+    # TODO: check if there is more than one box_group
+    while i < len(predictions):
+        lines.append('')
+        for j in range(i + 1, len(predictions)):
+            if(isOnSameLine(predictions[i],predictions[j])):
+                if i not in temp:
+                    temp.append(i)
+                if j not in temp:
+                    temp.append(j)
+            # append temp with i if the current box (i) is not on the same line with any other box
+            if len(temp) == 0:
+                temp.append(i)
+
+        # put boxes on same line into lined_box_group array
+        lined_box_group = np.array(predictions)[np.array(temp)]
+        # sort boxes by startX value
+        lined_box_group = lined_box_group[np.argsort(np.array([x[0][0] for x in lined_box_group[:,1]]))]
+        # copy sorted boxes on same line into sorted_box_group
+        predictions[i:temp[-1]+1] = lined_box_group
+
+        # skip to the index of the box that is not on the same line
+        i = temp[-1] + 1
+        # clear list of indexes
+        lines.append(' '.join(lined_box_group[:,0]).strip())
+        temp = []
+
+    return lines
 
 
 def drawAnnotations(image, predictions, ax=None):

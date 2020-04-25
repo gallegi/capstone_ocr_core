@@ -146,14 +146,19 @@ def _transform(inputs):
     return transformed_image
 
 
-def CTCDecoder():  # pylint: disable=invalid-name
+def CTCDecoder():
     def decoder(y_pred):
-        y_pred = y_pred[:, :, :]
-        input_length = keras.backend.ones_like(y_pred[:, 0, 0]) * keras.backend.cast(
-            keras.backend.shape(y_pred)[1], 'float32')
-        return keras.backend.ctc_decode(y_pred, input_length)[0]
+        input_shape = tf.keras.backend.shape(y_pred)
+        input_length = tf.ones(shape=input_shape[0]) * tf.keras.backend.cast(
+            input_shape[1], 'float32')
+        unpadded = tf.keras.backend.ctc_decode(y_pred, input_length)[0][0]
+        unpadded_shape = tf.keras.backend.shape(unpadded)
+        padded = tf.pad(unpadded,
+                        paddings=[[0, 0], [0, input_shape[1] - unpadded_shape[1]]],
+                        constant_values=-1)
+        return padded
 
-    return keras.layers.Lambda(decoder, name='decode')
+    return tf.keras.layers.Lambda(decoder, name='decode')
 
 
 def attention_rnn(inputs):
@@ -342,8 +347,8 @@ class Recognizer:
         Generate batches of training data from an image generator. The generator
         should yield tuples of (image, sentence) where image contains a single
         line of text and sentence is a string representing the contents of
-        the image.
-
+        the image. If a sample weight is desired, it can be provided as a third
+        entry in the tuple, making each tuple an (image, sentence, weight) tuple.
         Args:
             image_generator: An image / sentence tuple generator. The images should
                 be in color even if the OCR is setup to handle grayscale as they
@@ -357,15 +362,15 @@ class Recognizer:
             raise Exception('You must first call create_training_model().')
         max_string_length = self.training_model.input_shape[1][1]
         while True:
-            batch = [data for data, _ in zip(image_generator, range(batch_size))]
+            batch = [sample for sample, _ in zip(image_generator, range(batch_size))]
             if not self.model.input_shape[-1] == 3:
                 images = [
-                    cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)[..., np.newaxis] for image, _ in batch
+                    cv2.cvtColor(sample[0], cv2.COLOR_RGB2GRAY)[..., np.newaxis] for sample in batch
                 ]
             else:
-                images = [image for image, _ in batch]
+                images = [sample[0] for sample in batch]
             images = np.array([image.astype('float32') / 255 for image in images])
-            sentences = [sentence.strip() for _, sentence in batch]
+            sentences = [sample[1].strip() for sample in batch]
             if lowercase:
                 sentences = [sentence.lower() for sentence in sentences]
             assert all(c in self.alphabet
@@ -374,15 +379,22 @@ class Recognizer:
             assert all(
                 len(sentence) <= max_string_length
                 for sentence in sentences), 'A sentence is longer than this model can predict.'
+            assert all("  " not in sentence for sentence in sentences), (
+                'Strings with multiple sequential spaces are not permitted. '
+                'See https://github.com/faustomorales/keras-ocr/issues/54')
             label_length = np.array([len(sentence) for sentence in sentences])[:, np.newaxis]
-            labels = np.array([[self.alphabet.index(c) for c in sentence] + [self.blank_label_idx] *
-                               (max_string_length - len(sentence)) for sentence in sentences])
+            labels = np.array([[self.alphabet.index(c)
+                                for c in sentence] + [-1] * (max_string_length - len(sentence))
+                               for sentence in sentences])
             input_length = np.ones((batch_size, 1)) * max_string_length
-            yield (images, labels, input_length, label_length), y
+            if len(batch[0]) == 3:
+                sample_weights = np.array([sample[2] for sample in batch])
+                yield (images, labels, input_length, label_length), y, sample_weights
+            else:
+                yield (images, labels, input_length, label_length), y
 
     def recognize(self, image):
         """Recognize text from a single image.
-
         Args:
             image: A pre-cropped image containing characters
         """
@@ -390,45 +402,47 @@ class Recognizer:
                                    width=self.prediction_model.input_shape[2],
                                    height=self.prediction_model.input_shape[1],
                                    cval=0)
-        if self.prediction_model.input_shape[-1] == 1:
+        if self.prediction_model.input_shape[-1] == 1 and image.shape[-1] == 3:
+            # Convert color to grayscale
             image = cv2.cvtColor(image, code=cv2.COLOR_RGB2GRAY)[..., np.newaxis]
-        image = image.astype('float32') / 255.
+        image = image.astype('float32') / 255
         return ''.join([
             self.alphabet[idx] for idx in self.prediction_model.predict(image[np.newaxis])[0]
             if idx not in [self.blank_label_idx, -1]
         ])
 
-    def recognize_from_boxes(self,
-                             image,
-                             boxes,
-                             batch_size=5) -> typing.List[typing.Tuple[str, np.ndarray]]:
-        """Recognize text from an image using a set of bounding boxes.
-
+    def recognize_from_boxes(self, images, box_groups, **kwargs) -> typing.List[str]:
+        """Recognize text from images using lists of bounding boxes.
         Args:
-            image: A pre-cropped image containing characters
-            boxes: A list of boxes provided as four coordinates
-            batch_size: The prediction batch size
+            images: A list of input images, supplied as numpy arrays with shape
+                (H, W, 3).
+            box_groups: A list of groups of boxes, one for each image
         """
+        assert len(box_groups) == len(images), \
+            'You must provide the same number of box groups as images.'
         crops = []
-        image = tools.read(image)
-        for box in boxes:
-            crops.append(
-                tools.warpBox(image=image,
-                              box=box, margin=3,
-                              target_height=self.model.input_shape[1],
-                              target_width=self.model.input_shape[2]))
-        crops = np.array(
-            [cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)[..., np.newaxis] for crop in crops])
-        # for mat in crops:
-        #     Config.count+=1
-        # cv2.imwrite('boxs/{}.png'.format(Config.count), mat)
-        X = crops.astype('float32') / 255.
-        predictions = []
-        for index in range(0, len(X), batch_size):
-            y = self.prediction_model.predict(X[index:index + batch_size])
-            predictions.extend([
-                ''.join(
-                    [self.alphabet[idx] for idx in row if idx not in [self.blank_label_idx, -1]])
-                for row in y
-            ])
-        return list(zip(predictions, boxes))
+        start_end = []
+        for image, boxes in zip(images, box_groups):
+            image = tools.read(image)
+            if self.prediction_model.input_shape[-1] == 1 and image.shape[-1] == 3:
+                # Convert color to grayscale
+                image = cv2.cvtColor(image, code=cv2.COLOR_RGB2GRAY)
+            for box in boxes:
+                crops.append(
+                    tools.warpBox(image=image,
+                                  box=box,
+                                  target_height=self.model.input_shape[1],
+                                  target_width=self.model.input_shape[2]))
+            start = 0 if not start_end else start_end[-1][1]
+            start_end.append((start, start + len(boxes)))
+        if not crops:
+            return [[] for image in images]
+        X = np.float32(crops) / 255.
+        if len(X.shape) == 3:
+            X = X[..., np.newaxis]
+        predictions = [
+            ''.join([self.alphabet[idx] for idx in row if idx not in [self.blank_label_idx, -1]])
+            for row in self.prediction_model.predict(X, **kwargs)
+        ]
+        return [predictions[start:end] for start, end in start_end]
+
