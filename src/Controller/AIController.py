@@ -14,7 +14,6 @@ from Entities.TextRecognizer import TextRecognizer
 from Entities.DocumentClassifier import DocumentClassifier
 
 pytesseract.tesseract_cmd = r"/home/nam/local/bin/tesseract"
-doc_clf_model = "weights/"
 
 class AIController:
     def __init__(self):
