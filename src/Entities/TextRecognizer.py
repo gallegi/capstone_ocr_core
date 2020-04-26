@@ -37,7 +37,7 @@ class TextRecognizer(AbtractModel):
             weights='kurapan',
             optimizer='RMSprop',
             include_top=0,
-            attention=0
+            attention=1
         )
         super().__init__()
 

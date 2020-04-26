@@ -17,7 +17,6 @@ pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 class AIController:
     def __init__(self):
         config = Config()
-
         self.document_detector = DocumentDetector(config)
         self.text_detector = TextDetector(config)
         self.text_recognizer = TextRecognizer(config)
