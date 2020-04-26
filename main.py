@@ -11,6 +11,10 @@ import base64
 import io
 import numpy as np
 
+import sys
+import os 
+sys.path.append("src")
+
 from Controller.AIController import AIController
 from Controller.OcrController import OcrController
 from src.recognizer_master import RecognizerMaster
