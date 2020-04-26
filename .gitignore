@@ -1,6 +1,6 @@
 data/*
 /weights/
-weight.zip
+weights.zip
 /test images/
 /test results/
 /logs/
