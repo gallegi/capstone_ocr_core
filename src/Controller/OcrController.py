@@ -1,3 +1,6 @@
+import sys
+sys.path.append("src")
+
 from Controller.AIController import AIController
 import cv2
 
@@ -7,7 +10,7 @@ class OcrController:
         self.ai_controller = AIController()
     #TODO: A lot of things to do here
     def get_form_id(self, text):
-        pass  # return id as int
+        return self.ai_controller.classify_form_id(text)
 
     def get_raw_text(self, text):
         return text
@@ -75,8 +78,17 @@ class OcrController:
         }
         return img,data
 
+    def set_new_doc_clf(self, new_doc_clf):
+        '''Replace old document classifier by new one'''
+        self.ai_controller.document_classifier = new_doc_clf
+        
 
 if __name__ == '__main__':
     ocr_controller = OcrController()
-    data = ocr_controller.ocr(cv2.imread(r'F:\Github\ocrcore\test images\IMG_1169 (1).png'), ocr_type=1)
+    if(len(sys.argv) == 1):
+        data = ocr_controller.ocr(cv2.imread(r'F:\Github\ocrcore\test images\IMG_1169 (1).png'), ocr_type=1)
+    elif(len(sys.argv) == 2):
+        data = ocr_controller.ocr(cv2.imread(sys.argv[1]), ocr_type=1)
+    elif(len(sys.argv) == 3):
+        data = ocr_controller.ocr(cv2.imread(sys.argv[1]), ocr_type=int(sys.argv[2]))
     print(data)

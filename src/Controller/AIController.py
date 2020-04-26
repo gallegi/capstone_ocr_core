@@ -11,8 +11,10 @@ from Entities.Config import Config
 from Entities.DocumentDetector import DocumentDetector
 from Entities.TextDetector import TextDetector
 from Entities.TextRecognizer import TextRecognizer
+from Entities.DocumentClassifier import DocumentClassifier
 
-pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+pytesseract.tesseract_cmd = r"/home/nam/local/bin/tesseract"
+doc_clf_model = "weights/"
 
 class AIController:
     def __init__(self):
@@ -20,6 +22,7 @@ class AIController:
         self.document_detector = DocumentDetector(config)
         self.text_detector = TextDetector(config)
         self.text_recognizer = TextRecognizer(config)
+        self.document_classifier = DocumentClassifier(config)
 
     def ocr_with_dl(self, mats):
         texts = []
@@ -41,10 +44,14 @@ class AIController:
         for mat in mats:
             # stage 1: detect document
             mat = self.document_detector.find_document(mat)
-            text = pytesseract.image_to_string(mat,lang='vie')
+            text = pytesseract.image_to_string(mat, lang='vie')
             imgs.append(mat)
             texts.append(text)
         return imgs,texts
+
+    def classify_form_id(self, raw_text):
+        '''Classify raw_text to get form id'''
+        return self.document_classifier.predict(raw_text)
 
     def recognize_entiies(self,text):
         # TODO : Implement Ner here
