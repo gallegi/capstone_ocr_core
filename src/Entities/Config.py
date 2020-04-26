@@ -15,3 +15,8 @@ class Config:
 
         self.alphabet = alphabet
         self.recognizer_weights_path ='weights/vi_recognizer_v2.h5'
+
+        # doc_clf model and data path
+        self.doc_clf_data_source_path = "doc_clf_db/document_clf_db.csv"
+        self.doc_clf_model = "weights/doc_clf_model.pkl"
+        self.doc_clf_ft_ext = "weights/doc_clf_ft_ext.pkl"

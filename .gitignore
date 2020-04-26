@@ -1,7 +1,13 @@
 data/*
 /weights/
+weights.zip
 /test images/
 /test results/
 /logs/
 HERAI-94e855c052e7.json
 /.idea/
+.vscode/
+__pycache__/
+
+
+doc_clf_db/
