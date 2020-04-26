@@ -1,12 +1,11 @@
 import recognition
 import tools
 from Entities.AbtractModel import AbtractModel
-from fullflow import recognizer
 
 
 class TextRecognizer(AbtractModel):
     def predict(self, mats, boxes):
-        return recognizer.recognize_from_boxes(images=mats, box_groups=boxes)
+        return self.recognizer.recognize_from_boxes(images=mats, box_groups=boxes)
 
     def fit(self):
         pass

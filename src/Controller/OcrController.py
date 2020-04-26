@@ -78,5 +78,5 @@ class OcrController:
 
 if __name__ == '__main__':
     ocr_controller = OcrController()
-    data = ocr_controller.ocr(cv2.imread(r'F:\Github\ocrcore\test images\IMG_1169 (1).png'), ocr_type=1)
+    data = ocr_controller.ocr(cv2.imread(r'F:\Github\ocrcore\test images\IMG_1169 (1).png'), ocr_type=0)
     print(data)
