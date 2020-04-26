@@ -14,4 +14,4 @@ class Config:
 
 
         self.alphabet = alphabet
-        self.recognizer_weights_path ='weights/vi_recognizer_v2_attention.h5'
+        self.recognizer_weights_path ='weights/vi_recognizer_v2.h5'

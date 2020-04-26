@@ -54,7 +54,7 @@ class OcrController:
         if ocr_type == 0:
             imgs, texts = self.ai_controller.ocr_with_tess([mat])
         elif ocr_type == 1:
-            imgs, texts = self.ai_controller.ocr_with_dl([mat])[0]
+            imgs, texts = self.ai_controller.ocr_with_dl([mat])
         img = imgs[0]
         text = texts[0]
         data = {
@@ -78,5 +78,5 @@ class OcrController:
 
 if __name__ == '__main__':
     ocr_controller = OcrController()
-    data = ocr_controller.ocr(cv2.imread(r'F:\Github\ocrcore\test images\IMG_1169 (1).png'), ocr_type=0)
+    data = ocr_controller.ocr(cv2.imread(r'F:\Github\ocrcore\test images\IMG_1169 (1).png'), ocr_type=1)
     print(data)
