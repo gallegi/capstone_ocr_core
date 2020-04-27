@@ -1,6 +1,7 @@
 import sys
 sys.path.append("src")
 
+from Entities.EntityRecognizer import EntityRecognizer
 from Controller.AIController import AIController
 import cv2
 
@@ -8,6 +9,8 @@ import cv2
 class OcrController:
     def __init__(self):
         self.ai_controller = AIController()
+        self.ner = EntityRecognizer(self.ai_controller.config)
+
     #TODO: A lot of things to do here
     def get_form_id(self, text):
         return self.ai_controller.classify_form_id(text)
@@ -16,14 +19,13 @@ class OcrController:
         return text
 
     def get_provinces(self, text):
-
-        pass  # return list of provinces
+        return self.ner.ner_province(text)
 
     def get_districs(self, text):
-        pass  # return list of districts
+        return self.ner.ner_district(text)
 
     def get_public_administration(self, text):
-        pass  # return list of public_administration
+        return self.ner.ner_cqhc(text)
 
     def get_profiles(self, text):
         pass  # return list of profiles

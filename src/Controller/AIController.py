@@ -17,11 +17,11 @@ pytesseract.tesseract_cmd = r"/home/nam/local/bin/tesseract"
 
 class AIController:
     def __init__(self):
-        config = Config()
-        self.document_detector = DocumentDetector(config)
-        self.text_detector = TextDetector(config)
-        self.text_recognizer = TextRecognizer(config)
-        self.document_classifier = DocumentClassifier(config)
+        self.config = Config()
+        self.document_detector = DocumentDetector(self.config)
+        self.text_detector = TextDetector(self.config)
+        self.text_recognizer = TextRecognizer(self.config)
+        self.document_classifier = DocumentClassifier(self.config)
 
     def ocr_with_dl(self, mats):
         texts = []
@@ -51,10 +51,6 @@ class AIController:
     def classify_form_id(self, raw_text):
         '''Classify raw_text to get form id'''
         return self.document_classifier.predict(raw_text)
-
-    def recognize_entiies(self,text):
-        # TODO : Implement Ner here
-        pass
 
 
 if __name__ == '__main__':
