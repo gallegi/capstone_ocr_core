@@ -11,3 +11,5 @@ __pycache__/
 
 
 doc_clf_db/
+data_source/
+data_source.zip
