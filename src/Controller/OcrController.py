@@ -13,7 +13,7 @@ class OcrController:
 
     #TODO: A lot of things to do here
     def get_form_id(self, text):
-        return self.ai_controller.classify_form_id(text)
+        return int(self.ai_controller.classify_form_id(text))
 
     def get_raw_text(self, text):
         return text
@@ -28,31 +28,31 @@ class OcrController:
         return self.ner.ner_cqhc(text)
 
     def get_profiles(self, text):
-        pass  # return list of profiles
+        return []
 
     def get_appointment_letter_code(self, text):
-        pass  # return list
+        return []
 
     def get_names(self, text):
-        pass  # return list of names
+        return []
 
     def get_phone_numbers(self, text):
-        pass  # return list of phone numbers
+        return []
 
     def get_street_names(self, text):
-        pass  # return list of street names
+        return []
 
     def get_personal_paper_types(self, text):
-        pass  # return list of personal paper types
+        return []
 
     def get_personal_paper_number(self, text):
-        pass  # return list of personal paper number
+        return []
 
     def get_issued_dates(self, text):
-        pass  # return list of issues dates
+        return []
 
     def get_issued_place(self, text):
-        pass  # return list of issues place
+        return []
 
     def ocr(self, mat, ocr_type):
 
