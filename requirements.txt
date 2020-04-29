@@ -18,4 +18,6 @@ requests
 chart-studio
 plotly
 pandas
+tornado
+pytesseract
 ar-markers
