@@ -27,7 +27,7 @@ import re
 ocr_controller = OcrController()
 config = Config()
 
-class OcrHandler(RequestHandler):
+class OcrDemo(RequestHandler):
 
     def process(self, mat, ocr_type=0):
         data = ocr_controller.ocr(mat, ocr_type)
@@ -55,9 +55,45 @@ class OcrHandler(RequestHandler):
         except:
             self.render('public/index.html', image_src='', data={})
 
+class OcrHandler(RequestHandler):
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+
+
+    def process(self, mat, ocr_type=0):
+        data = ocr_controller.ocr(mat, ocr_type)
+        return data
+
+    def get(self):
+        self.render("public/index.html", image_src='', data={})
+
+    def post(self, *args, **kwargs):
+        if len(self.request.files) == 0:
+            print(self.request.data)
+            print(self.request)
+            self.write({'error':'request file is empty'})
+            self.finish()
+            return
+        try:
+            file_body = self.request.files['image'][0]['body']
+            mat = imread(io.BytesIO(file_body))
+            mat = cv2.cvtColor(mat, cv2.COLOR_RGB2BGR)
+            img, data = self.process(mat, 0)
+            image_path = 'public/demo_{}.jpg'.format(time.strftime("%Y%m%d-%H%M%S"))
+            cv2.imwrite(image_path, img)
+            print(data)
+            self.write(data)
+            self.finish()  # Without this the client's request will hang
+        except:
+            self.write({'error':'an error has occurred'})
+            self.finish()  # Without this the client's request will hang
+
 class RetrainHandler(RequestHandler):
     def post(self, *args, **kwargs): 
         doc_clf = DocumentClassifier(config)
+        print(self.request.body)
         request_data = json.loads(self.request.body)
         doc_clf.train(request_data)
         doc_clf.save_models()
@@ -66,7 +102,8 @@ class RetrainHandler(RequestHandler):
         self.finish()  # Without this the client's request will hang
 
 def make_app():
-    routes = [(r'/', OcrHandler),
+    routes = [(r'/', OcrDemo),
+              (r'/ocr', OcrHandler),
               (r'/(?:public)/(.*)', tornado.web.StaticFileHandler, {'path': './public'}),
               (r'/retrain', RetrainHandler)]
     return Application(routes)
