@@ -11,9 +11,9 @@ import cv2
 
 
 class OcrController:
-    def __init__(self):
-        self.ai_controller = AIController()
-        self.ner = EntityRecognizer(self.ai_controller.config)
+    def __init__(self,config):
+        self.ai_controller = AIController(config)
+        self.ner = EntityRecognizer(config)
 
 
     #TODO: A lot of things to do here

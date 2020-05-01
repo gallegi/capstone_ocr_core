@@ -25,7 +25,17 @@ class Config:
         self.ner_province_district_path = 'data_source/ProvinceDistrict.xls'
         self.ner_cqhc_path = 'data_source/CQHC.xls'
         self.ner_engine_path = os.getcwd() + r'/weights/VnCoreNLP-1.1.1.jar'
+        self.read_config()
 
+    def read_config(self,config_path = 'weights/config.txt'):
+        lines = open(config_path,encoding='utf-8').read().split('\n')
+        data= {}
+        for line in lines:
+            z = line.split('=')
+            if len(z)==2:
+                data[z[0]]=z[1]
+        self.port=  data['PORT']
+        self.is_debug = int(data['DEBUG'])
 
 if __name__ == '__main__':
     config = Config()

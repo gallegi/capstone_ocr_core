@@ -28,8 +28,8 @@ import pytesseract
 
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-ocr_controller = OcrController()
 config = Config()
+ocr_controller = OcrController(config)
 
 class OcrDemo(RequestHandler):
 
@@ -117,5 +117,10 @@ def make_app():
 if __name__ == '__main__':
     app = make_app()
     print('Start serving')
-    app.listen(8888)
+
+    if config.is_debug:
+        port = config.port
+    else:
+        port = 80
+    app.listen(port)
     IOLoop.current().start()

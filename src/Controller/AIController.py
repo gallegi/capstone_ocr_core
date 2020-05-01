@@ -16,8 +16,8 @@ from Entities.DocumentClassifier import DocumentClassifier
 pytesseract.tesseract_cmd = r"/home/nam/local/bin/tesseract"
 
 class AIController:
-    def __init__(self):
-        self.config = Config()
+    def __init__(self,config):
+        self.config = config
         self.document_detector = DocumentDetector(self.config)
         self.text_detector = TextDetector(self.config)
         self.text_recognizer = TextRecognizer(self.config)
