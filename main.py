@@ -23,6 +23,10 @@ from src.recognizer_master import RecognizerMaster
 import tensorflow as tf
 import traceback
 import re
+import pytesseract
+
+
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 ocr_controller = OcrController()
 config = Config()
@@ -41,7 +45,7 @@ class OcrDemo(RequestHandler):
             self.render('public/index.html', image_src='', data={})
             return
         try:
-            file_body = self.request.files['file1'][0]['body']
+            file_body = self.request.files['image'][0]['body']
             ocr_type = 1
             if 'ocr_type' in self.request.arguments:
                 ocr_type = int(self.request.arguments['ocr_type'][0].decode())
@@ -53,6 +57,7 @@ class OcrDemo(RequestHandler):
             cv2.imwrite(image_path, img)
             self.render('public/index.html', image_src=image_path, data=data)
         except:
+            raise
             self.render('public/index.html', image_src='', data={})
 
 class OcrHandler(RequestHandler):
@@ -112,5 +117,5 @@ def make_app():
 if __name__ == '__main__':
     app = make_app()
     print('Start serving')
-    app.listen(8887)
+    app.listen(8888)
     IOLoop.current().start()

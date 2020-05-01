@@ -21,3 +21,4 @@ pandas
 tornado
 pytesseract
 ar-markers
+vncorenlp

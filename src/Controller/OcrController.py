@@ -1,4 +1,7 @@
 import sys
+
+from Entities.Config import Config
+
 sys.path.append("src")
 
 from Entities.EntityRecognizer import EntityRecognizer
@@ -6,10 +9,12 @@ from Controller.AIController import AIController
 import cv2
 
 
+
 class OcrController:
     def __init__(self):
         self.ai_controller = AIController()
         self.ner = EntityRecognizer(self.ai_controller.config)
+
 
     #TODO: A lot of things to do here
     def get_form_id(self, text):
@@ -34,7 +39,7 @@ class OcrController:
         return []
 
     def get_names(self, text):
-        return []
+        return self.ner.ner_person_names(text)
 
     def get_phone_numbers(self, text):
         return []

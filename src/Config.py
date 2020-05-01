@@ -16,3 +16,4 @@ text_gen_model_path = data_dir + '/markov_textgen.json'
 FONT_PATH = data_dir + '/fonts/'
 
 backgrounds = glob.glob(data_dir + '/backgrounds/*.jpg')+ glob.glob('/home/linhnq3/Disk2T/data/synthtext/bg_img/*')
+

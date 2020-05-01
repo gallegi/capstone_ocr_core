@@ -24,4 +24,4 @@ class Config:
         # ner data source path
         self.ner_province_district_path = 'data_source/ProvinceDistrict.xls'
         self.ner_cqhc_path = 'data_source/CQHC.xls'
-
+        self.ner_engine_path = r'F:\Github\ocrcore\weights\VnCoreNLP-1.1.1.jar'
