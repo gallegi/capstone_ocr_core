@@ -123,7 +123,7 @@ def retrain_original():
 	        }
     }
 
-    response = requests.post('http://127.0.0.1:8888/retrain', json=request_data)
+    response = requests.post('http://103.104.117.175/retrain', json=request_data)
     print(response.json())
 
 if __name__ == "__main__":

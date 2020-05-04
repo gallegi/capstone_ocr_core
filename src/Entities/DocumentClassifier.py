@@ -116,7 +116,7 @@ class DocumentClassifier:
 
         # update mapping from label to form id
         self.label_to_form_id = templates['form_id']
-        print(self.label_to_form_id)
+        # print(self.label_to_form_id)
 
         # retrain model
         if(templates.empty):
