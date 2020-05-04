@@ -3,6 +3,7 @@ import io
 import pandas as pd
 import glob
 import pickle
+import json
 
 import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
@@ -109,14 +110,14 @@ class DocumentClassifier:
                 - request_data: raw_text send from clients to insert or update data source'''
         action = request_data['action']
         form_id = request_data['ft']['FormID']
-        raw_text = request_data['ft']['APIOutput']['raw_text']
+        raw_text = json.loads(request_data['ft']['APIOutput'])['raw_text']
 
         # update data source
         templates, msg = self.__update_datasource__(form_id, raw_text, action)
 
         # update mapping from label to form id
         self.label_to_form_id = templates['form_id']
-        # print(self.label_to_form_id)
+        print(self.label_to_form_id)
 
         # retrain model
         if(templates.empty):
