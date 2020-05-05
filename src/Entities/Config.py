@@ -18,6 +18,7 @@ class Config:
 
         # doc_clf model and data path
         self.doc_clf_data_source_path = "data_source/document_clf_db.csv"
+        self.doc_clf_data_source_path_original = "data_source/document_clf_db_bku.csv"
         self.doc_clf_model = "weights/doc_clf_model.pkl"
         self.doc_clf_ft_ext = "weights/doc_clf_ft_ext.pkl"
 
