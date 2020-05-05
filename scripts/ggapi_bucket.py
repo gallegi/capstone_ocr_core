@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 
 bucket_name = 'vnpost'
-source_folder = r'C:\Users\Binh Bum\Downloads\Photos\test_images/'
+source_folder = r'C:\Users\Binh Bum\Downloads\Photos\batch_2/'
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = r"C:\Users\Binh Bum\OneDrive\AWS keys\HERAI-b35db0453388.json"
 image_names = glob.glob(source_folder + '/*.jpg')

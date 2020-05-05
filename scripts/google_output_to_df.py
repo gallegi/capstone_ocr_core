@@ -4,7 +4,9 @@ import glob
 
 from tqdm import tqdm
 
-json_paths = glob.glob(r'C:\Users\Binh Bum\Downloads\Photos\test_label\output/*')
+
+
+json_paths = glob.glob(r'C:\Users\Binh Bum\Downloads\Photos\batch_2\output/*')
 
 image_names = []
 points = []
@@ -13,7 +15,9 @@ for json_path in tqdm(json_paths):
     text = open(json_path, encoding='utf-8').read()
     data = json.loads(text)
     for image in data['responses']:
-        for annotation in image['textAnnotations'][:1]:
+        if 'textAnnotations' not in image:
+            continue
+        for annotation in image['textAnnotations'][1:]:
             image_names.append(image['context']['uri'].split('/')[-1])
             word = annotation['description']
             words.append(word)
@@ -27,4 +31,4 @@ for json_path in tqdm(json_paths):
 df = pd.DataFrame(columns=['x1','y1','x2','y2','x3','y3','x4','y4','x_mean','y_mean'],data=points)
 df['image_name'] = image_names
 df['word'] = words
-df.to_json(r'C:\Users\Binh Bum\Downloads\Photos\test_label/google_output.json')
+df.to_json(r'C:\Users\Binh Bum\Downloads\Photos\batch_2/google_output.json')
