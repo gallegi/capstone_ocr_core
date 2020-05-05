@@ -3,6 +3,7 @@ import json
 import os
 
 import numpy as np
+from tqdm import tqdm
 
 from datasets.AbtractDataset import Dataset
 from datasets.Label import Label
@@ -13,7 +14,7 @@ class LabelmeDataset(Dataset):
     def _read_labels(self, source_path):
         json_paths = glob.glob(source_path + '/*.json')
         labels = []
-        for json_path in json_paths:
+        for json_path in tqdm(json_paths):
             json_path = os.path.normpath(json_path)
             json_path_parts = json_path.split(os.sep)
             # json_path_parts[-2] = 'images'

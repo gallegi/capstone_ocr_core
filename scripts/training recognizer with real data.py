@@ -1,26 +1,12 @@
-import functools
 import sys
-
-from tensorflow import ConfigProto, InteractiveSession
-
+sys.path.append('./src')
 import Config
 from datasets.LabelmeDataset import LabelmeDataset
-
-sys.path.append('src')
 import imgaug
 import matplotlib.pyplot as plt
 import sklearn.model_selection
 import tensorflow as tf
-
 import recognition
-from LogImageCallback import LogImageCallback
-#
-# from tensorflow.compat.v1 import ConfigProto
-# from tensorflow.compat.v1 import InteractiveSession
-
-config = ConfigProto()
-config.gpu_options.allow_growth = True
-session = InteractiveSession(config=config)
 
 
 model_name = 'vnpost_recognizer_LabelmeDataset'
