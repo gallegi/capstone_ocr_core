@@ -5,10 +5,15 @@ from google.cloud import vision
 from google.cloud.vision import types, enums
 from tqdm import tqdm
 
-bucket_name = 'ocr_labeling_amt'
-source_folder = r'C:\Users\Nguyen Anh Binh\Downloads\ENG\images/'
+# bucket download command
+# gsutil -m cp -R gs://vnpost/output .
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "HERAI-94e855c052e7.json"
+
+
+bucket_name = 'vnpost'
+source_folder = r'C:\Users\Binh Bum\Downloads\Photos\test_images/'
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = r"C:\Users\Binh Bum\OneDrive\AWS keys\HERAI-b35db0453388.json"
 image_names = glob.glob(source_folder + '/*.jpg')
 features = [
     types.Feature(type=enums.Feature.Type.DOCUMENT_TEXT_DETECTION),
@@ -23,14 +28,14 @@ def detect_text(paths, batch):
     requests = []
     for path in paths:
         image_name = path.split(os.sep)[-1]
-        source = {"image_uri": 'gs://{}/images/{}'.format(bucket_name, image_name)}
+        source = {"image_uri": 'gs://{}/with_marker/{}'.format(bucket_name, image_name)}
         image = {"source": source}
         request = types.AnnotateImageRequest(image=image, features=features)
         requests.append(request)
     gcs_destination = {"uri": 'gs://{}/output/batch_{}'.format(bucket_name, batch)}
     output_config = {"gcs_destination": gcs_destination, "batch_size": 16}
     r = client.async_batch_annotate_images(requests, output_config)
-    print(r)
+    # print(r)
 
 
 def crawl():

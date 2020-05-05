@@ -1,5 +1,6 @@
 import sys
 
+import Config
 from datasets.LabelmeDataset import LabelmeDataset
 
 sys.path.append('src')
@@ -17,18 +18,22 @@ from tensorflow.compat.v1 import InteractiveSession
 config = ConfigProto()
 config.gpu_options.allow_growth = True
 session = InteractiveSession(config=config)
-
-dataset = LabelmeDataset(r'D:\Github\ocrcore\data\bills', name='bill')
+model_name = 'vnpost_recognizer_LabelmeDataset'
+dataset = LabelmeDataset(r'data/vnpost/', name='vnpost')
 train_labels = dataset.labels
-train_labels = [(filepath, box, word.lower()) for filepath, box, word in train_labels]
+train_labels = [(filepath, box, str(word).lower()) for filepath, box, word in train_labels]
 dataset.labels = train_labels
-
+alphabet = ''.join(Config.alphabet)
+recognizer_alphabet = ''.join(sorted(set(alphabet.lower())))
 recognizer = recognition.Recognizer(
     width=200,
     height=31,
-    stn=0,
-    optimizer='adam', attention=1,
-    include_top=False, weights=None
+    stn=True,
+    alphabet=recognizer_alphabet,
+    # weights=None,
+    optimizer='adam',
+    include_top=False,
+    attention=True,
 )
 
 augmenter = imgaug.augmenters.Sequential([
@@ -39,7 +44,7 @@ augmenter = imgaug.augmenters.Sequential([
 
 recognizer.training_model.summary()
 try:
-    recognizer.training_model.load_weights('weights/recognizer_{}.h5'.format(type(dataset).__name__))
+    recognizer.training_model.load_weights('weights/{}.h5'.format(model_name))
     print('weights loaded')
 except:
     print("Can't find or load weights")
@@ -64,17 +69,17 @@ training_gen, validation_gen = [
     )
     for image_generator in [training_image_gen, validation_image_gen]
 ]
-for i in range(1):
+for i in range(4):
     image, text = next(training_image_gen)
     plt.title(text)
     _ = plt.imshow(image)
-    # plt.show()
+    plt.show()
 
 callbacks = [
-    LogImageCallback(validation_labels, recognizer),
-    tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=10, restore_best_weights=False),
-    tf.keras.callbacks.ModelCheckpoint('weights/bill_recognizer_{}.h5'.format(type(dataset).__name__),
-                                       monitor='val_loss',
+    # LogImageCallback(validation_labels, recognizer),
+    # tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=10, restore_best_weights=False),
+    tf.keras.callbacks.ModelCheckpoint('weights/vnpost_recognizer_{}.h5'.format(type(dataset).__name__),
+                                       monitor='val_acc',
                                        save_best_only=True),
 ]
 training_steps = 2000

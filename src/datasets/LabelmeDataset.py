@@ -25,7 +25,7 @@ class LabelmeDataset(Dataset):
             data = json.load(open(json_path, encoding='utf-8'))
             for shape in data['shapes']:
                 text = shape['label']
-                xmin, ymin, xmax, ymax = tuple(map(int, shape['points'][0] + shape['points'][1]))
+                xmin, ymin, xmax, ymax = tuple(map(int, shape['points'][0] + shape['points'][2]))
                 _label = Label(image=image_path,
                                boxs=np.array([[xmin, ymin], [xmin, ymax], [xmax, ymin], [xmax, ymax]]), word=text)
                 labels.append((_label.image, _label.boxs, _label.word))
