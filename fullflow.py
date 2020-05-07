@@ -29,10 +29,10 @@ recognizer = recognition.Recognizer(
     weights='kurapan',
     optimizer='RMSprop',
     include_top=0,
-    attention=0
+    attention=1
 )
 
-recognizer.training_model.load_weights('weights/vi_recognizer_v2.h5')
+recognizer.training_model.load_weights('weights/bill_recognizer_LabelmeDataset.h5')
 
 
 def load_graph(frozen_graph_filename, inputName, outputName):
@@ -207,7 +207,7 @@ if __name__ == "__main__":
         mat = tools.read(path)
         h, w, c = mat.shape
 
-        ## corner detection, refine corner
+        # corner detection, refine corner
         # doc_mat = find_document(mat)
         doc_mat = mat
         images = [doc_mat]
@@ -222,8 +222,8 @@ if __name__ == "__main__":
 
         predictions = [list(zip(predictions, boxes)) for predictions, boxes in zip(prediction_groups, boxes)]
 
-        lines = tools.combine_to_line(predictions[0])
-        print('\n'.join(lines))
+        # lines = tools.combine_to_line(predictions[0])
+        # print('\n'.join(lines))
 
         canvas = detection.drawBoxes(image=doc_mat, boxes=boxes[0])
         plt.imshow(canvas)

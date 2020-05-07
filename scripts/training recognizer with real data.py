@@ -1,35 +1,37 @@
 import sys
-
+sys.path.append('./src')
+import Config
 from datasets.LabelmeDataset import LabelmeDataset
-
-sys.path.append('src')
 import imgaug
 import matplotlib.pyplot as plt
 import sklearn.model_selection
 import tensorflow as tf
-
 import recognition
-from LogImageCallback import LogImageCallback
 
-from tensorflow.compat.v1 import ConfigProto
-from tensorflow.compat.v1 import InteractiveSession
 
-config = ConfigProto()
-config.gpu_options.allow_growth = True
-session = InteractiveSession(config=config)
-
-dataset = LabelmeDataset(r'D:\Github\ocrcore\data\bills', name='bill')
+model_name = 'vnpost_recognizer_LabelmeDataset'
+dataset = LabelmeDataset(r'data/vnpost/vnpost_train/', name='vnpost')
 train_labels = dataset.labels
-train_labels = [(filepath, box, word.lower()) for filepath, box, word in train_labels]
+train_labels = [(filepath, box, str(word)) for filepath, box, word in train_labels]
 dataset.labels = train_labels
-
+alphabet = ''.join(Config.alphabet)
+recognizer_alphabet = ''.join(sorted(set(alphabet)))
 recognizer = recognition.Recognizer(
     width=200,
     height=31,
-    stn=0,
-    optimizer='adam', attention=1,
-    include_top=False, weights=None
+    stn=True,
+    alphabet=recognizer_alphabet,
+    # weights=None,
+    optimizer='adam',
+    include_top=False,
+    attention=True,
 )
+recognizer.training_model.summary()
+try:
+    recognizer.training_model.load_weights('weights/{}.h5'.format(model_name))
+    print('weights loaded')
+except:
+    print("Can't find or load weights")
 
 augmenter = imgaug.augmenters.Sequential([
     imgaug.augmenters.Multiply((0.9, 1.1)),
@@ -37,12 +39,7 @@ augmenter = imgaug.augmenters.Sequential([
     imgaug.augmenters.Invert(0.25, per_channel=0.5)
 ])
 
-recognizer.training_model.summary()
-try:
-    recognizer.training_model.load_weights('weights/recognizer_{}.h5'.format(type(dataset).__name__))
-    print('weights loaded')
-except:
-    print("Can't find or load weights")
+
 
 batch_size = 8
 train_labels, validation_labels = sklearn.model_selection.train_test_split(train_labels, test_size=0.2, random_state=42)
@@ -64,17 +61,31 @@ training_gen, validation_gen = [
     )
     for image_generator in [training_image_gen, validation_image_gen]
 ]
-for i in range(1):
+
+# training_gen, validation_gen =  [
+#     tf.data.Dataset.from_generator(
+#         functools.partial(recognizer.get_batch_generator,
+#                           image_generator=image_generator,
+#                           batch_size=batch_size),
+#         output_types=((tf.float32, tf.int64, tf.float64, tf.int64), tf.float64),
+#         output_shapes=((tf.TensorShape([None, 31, 200, 1]), tf.TensorShape([None, recognizer.training_model.input_shape[1][1]]),
+#                         tf.TensorShape([None,
+#                                         1]), tf.TensorShape([None,
+#                                                              1])), tf.TensorShape([None, 1])))
+#     for image_generator in [training_image_gen, validation_image_gen]
+# ]
+
+for i in range(4):
     image, text = next(training_image_gen)
     plt.title(text)
     _ = plt.imshow(image)
-    # plt.show()
+    plt.show()
 
 callbacks = [
-    LogImageCallback(validation_labels, recognizer),
-    tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=10, restore_best_weights=False),
-    tf.keras.callbacks.ModelCheckpoint('weights/bill_recognizer_{}.h5'.format(type(dataset).__name__),
-                                       monitor='val_loss',
+    # LogImageCallback(validation_labels, recognizer),
+    # tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=10, restore_best_weights=False),
+    tf.keras.callbacks.ModelCheckpoint('weights/vnpost_recognizer_{}.h5'.format(type(dataset).__name__),
+                                       monitor='val_acc',
                                        save_best_only=True),
 ]
 training_steps = 2000

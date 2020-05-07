@@ -5,6 +5,7 @@ data_dir = 'data'
 alphabet =[]
 alphabet += sorted(list(set(string.digits.lower() + string.ascii_letters.lower() + '' + '-ọụạảãàáâậầấẩẫăắằặẳẵóòõỏôộổỗồốơờớợởỡéèẻẽêếềệểễúùủũưựữửừứíìịỉĩýỳỷỵỹđ:;,.')))
 alphabet += string.digits + string.ascii_lowercase
+alphabet = ''.join(alphabet).lower()+''.join(alphabet).upper()
 alphabet +=  '[],.)(?!/'
 alphabet = list(set(alphabet))
 alphabet = sorted(alphabet)

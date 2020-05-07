@@ -132,8 +132,8 @@ def combine_to_line(predictions):
                     temp.append(i)
                 if j not in temp:
                     temp.append(j)
-            # append temp with i if the current box (i) is not on the same line with any other box
-            if len(temp) == 0:
+        # append temp with i if the current box (i) is not on the same line with any other box
+        if len(temp) == 0:
                 temp.append(i)
 
         # put boxes on same line into lined_box_group array
