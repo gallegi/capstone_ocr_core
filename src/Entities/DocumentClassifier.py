@@ -109,11 +109,16 @@ class DocumentClassifier:
             Args:
                 - request_data: raw_text send from clients to insert or update data source'''
         action = request_data['action']
-        form_id = request_data['ft']['FormID']
-        raw_text = json.loads(request_data['ft']['APIOutput'])['raw_text']
+        print('Request retraining with action:', action)
+        if(action in ['delete_all', 'train_original']):
+            # update data source
+            templates, msg = self.__update_datasource__(None, None, action)
+        else:
+            form_id = request_data['ft']['FormID']
+            raw_text = json.loads(request_data['ft']['APIOutput'])['raw_text']
 
-        # update data source
-        templates, msg = self.__update_datasource__(form_id, raw_text, action)
+            # update data source
+            templates, msg = self.__update_datasource__(form_id, raw_text, action)
 
         # update mapping from label to form id
         self.label_to_form_id = templates['form_id']
@@ -132,7 +137,7 @@ class DocumentClassifier:
 
     def train_original_data(self):
         '''Train model with original data source'''
-        templates = pd.read_csv(self.data_source_path)
+        templates = pd.read_csv(self.data_source_path_original)
         # retrain model
         template_X = self.vec.transform(templates['text'])
         template_y = templates.index.values # form id maybe not mono_increasing -> use index as label

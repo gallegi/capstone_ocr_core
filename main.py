@@ -98,7 +98,9 @@ class OcrHandler(RequestHandler):
 class RetrainHandler(RequestHandler):
     def post(self, *args, **kwargs): 
         doc_clf = DocumentClassifier(config)
+        print(self.request.body)
         request_data = json.loads(self.request.body)
+        print(request_data)
         msg = doc_clf.train(request_data)
         doc_clf.save_models()
         ocr_controller.set_new_doc_clf(doc_clf)
