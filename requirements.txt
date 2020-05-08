@@ -22,3 +22,4 @@ tornado
 pytesseract
 ar-markers
 vncorenlp
+pyodbc
