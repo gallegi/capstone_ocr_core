@@ -179,6 +179,12 @@ class EntityRecognizer():
     def ner_personal_paper_types(self, text):
         return ['căn cước công dân']
 
+    def __check_name_contain_strange_chars__(self, name):
+        for ignore_char in ['j', 'z']:
+            if ignore_char in name.lower():
+                return True
+        return False
+
     def ner_person_names(self, text):
         text= text.replace('\n',' . ')
         annotated_text = self.ner_annotator.annotate(text)
@@ -188,11 +194,9 @@ class EntityRecognizer():
 
         annotated_text = pd.DataFrame(sentences)
         names = list(annotated_text[annotated_text['nerLabel'] == 'B-PER']['form'].str.replace('_', ' '))
-        ignore_chars = ['j', 'z']
-        for name in names:
-            for ignore_char in ignore_chars:
-                if ignore_char in name.lower():
-                    names.remove(name)
+
+        names = list(filter(lambda x: not self.__check_name_contain_strange_chars__(x)
+                                      and self.__count_words__('\s+', x) > 1, names))
 
         return names
 
