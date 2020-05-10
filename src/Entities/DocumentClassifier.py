@@ -113,8 +113,10 @@ class DocumentClassifier:
         '''Return form_id with raw_text'''
         features = self.vec.transform([raw_text])
         ind = self.model.predict(features)[0]
-        print(ind)
-        return self.label_to_form_id.iloc[ind]
+        try:
+            return self.label_to_form_id.iloc[ind]
+        except:
+            return -1
 
 if __name__ == "__main__":
     text = 'Mẫu CC03 ban hành kèm theo Thông tư số 66/2015/TT-BCA ngày 15/12/2015 CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM Độc lập - Tự do - Hạnh phúc GIẤY HẸN Trả thẻ Căn cước công dân Công an, qua đã tiếp nhận hồ sơ và làm thủ tục thẻ Căn cước công dân đối với công dân; Họ, chữ đệm và tên:.. Sinh ngày:............ Giới tính:.. Nơi thường trú Thời gian hẹn trả thẻ Căn cước công dân đối với công dân vào. giờ.......phút, thử.. ngày..................... Tai dia chi.............................. ........... ........., ngày ... tháng... nha. .. NGƯỜI LẬP GIÁ HENT" (Ký, ghi rõ họ tên)'
