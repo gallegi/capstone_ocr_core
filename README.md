@@ -9,7 +9,8 @@ git clone https://gitlab.com/maycuatroi/ocrcore
 cd ocrcore
 pip install -r requirements.txt
 ```
-weight link : https://drive.google.com/file/d/13OtK29OBfE62hUmaj2MIJu9UKDKx-fyz/view?usp=sharing
+1. weight link : https://drive.google.com/file/d/13OtK29OBfE62hUmaj2MIJu9UKDKx-fyz/view?usp=sharing
+2. data_source link (data_source.zip): https://drive.google.com/drive/u/0/folders/1zjDt3NIKKsnwOg35leSUcOeBLj-3F0Lq
 ### Predict :
 
 đặt ảnh vào folder ./test images
