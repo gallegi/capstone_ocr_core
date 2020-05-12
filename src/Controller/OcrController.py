@@ -23,6 +23,9 @@ class OcrController:
     def get_raw_text(self, text):
         return text
 
+    def get_district(self, text):
+        return self.ner.ner_district_no_prefix(text)
+
     def get_province_district_public_ad(self, text):
         return self.ner.ner_province_district_cqhc(text)
 
@@ -62,7 +65,8 @@ class OcrController:
         img = imgs[0]
         text = texts[0]
 
-        provinces, districts, public_ads = self.get_province_district_public_ad(text)
+        provinces, _, public_ads = self.get_province_district_public_ad(text)
+        districts = self.get_district(text)
 
         data = {
             "form_id": self.get_form_id(text),

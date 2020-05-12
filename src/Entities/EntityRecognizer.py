@@ -19,6 +19,12 @@ class EntityRecognizer():
         self.ref_district = province_district['Quận Huyện'].drop_duplicates().dropna()
         self.ref_district_no_accent = self.ref_district.map(lambda x: unidecode.unidecode(x))
 
+        self.ref_district_no_prefix = self.ref_district.str.replace('Quận', '').str.replace('Huyện', '') \
+            .str.replace('Thành phố', '').str.replace('Thị xã', '').str.strip()
+        ind = self.ref_district_no_prefix.map(lambda x: str.isdigit(x))
+        self.ref_district_no_prefix[ind] = 'Quận ' + self.ref_district_no_prefix[ind]
+        self.ref_district_no_prefix_no_accent = self.ref_district_no_prefix.map(lambda x: unidecode.unidecode(x))
+
         self.ref_province = province_district['Tỉnh Thành Phố'].drop_duplicates().dropna()
         self.ref_province = self.ref_province.str.replace('Tỉnh', '').str.replace('Thành phố', '').str.strip()
         self.ref_province_no_accent = self.ref_province.map(lambda x: unidecode.unidecode(x))
@@ -73,6 +79,12 @@ class EntityRecognizer():
     def __ner_district__(self, text):
         return self.__ner_lookup__(text, self.ref_district, self.ref_district_no_accent)
 
+    def ner_district_no_prefix(self, text):
+        text_lower = text.lower()
+        matched = self.ref_district_no_prefix.str.lower().map(lambda x: x in text_lower)
+        return self.ref_district_no_prefix[matched].tolist()
+        # return self.__ner_lookup__(text, self.ref_district_no_prefix, self.ref_district_no_prefix_no_accent)
+
     def __ner_cqhc__(self, text):
         return self.__ner_lookup__(text, self.ref_cqhc, self.ref_cqhc_no_accent)
 
@@ -113,8 +125,6 @@ class EntityRecognizer():
             result_cqhc = result_cqhc[result_cqhc != ''].drop_duplicates().tolist()
 
             if (len(result_cqhc) == 0):
-                print(list_cqhc['cqhc'])
-                print(list_cqhc['cqhc'].drop_duplicates())
                 return result_province, result_district, list_cqhc['cqhc'].drop_duplicates().tolist()
         except Exception as ex:
             return result_province, result_district, list_cqhc['cqhc'].drop_duplicates().tolist()
