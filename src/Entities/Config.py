@@ -15,7 +15,7 @@ class Config:
         print('Prepared alphabet : {}'.format(alphabet))
 
         self.alphabet = alphabet
-        self.recognizer_weights_path = 'weights/bill_recognizer_LabelmeDataset.h5'
+        self.recognizer_weights_path = 'weights/vi_recognizer_v2.h5'
 
         # doc_clf model and data path
         # self.doc_clf_data_source_path = "data_source/document_clf_db.csv"

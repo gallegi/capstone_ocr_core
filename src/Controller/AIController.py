@@ -21,7 +21,7 @@ class AIController:
         self.document_detector = DocumentDetector(self.config)
         self.text_detector = TextDetector(self.config)
         self.text_recognizer = TextRecognizer(self.config)
-        self.document_classifier = DocumentClassifier(self.config)
+        # self.document_classifier = DocumentClassifier(self.config)
 
     def ocr_with_dl(self, mats):
         texts = []

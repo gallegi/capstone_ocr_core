@@ -122,6 +122,8 @@ if __name__ == '__main__':
     if config.is_debug:
         port = config.port
     else:
-        port = 80
+        port = 8080
+
+    print(f'Start server with  f{port}')
     app.listen(port)
     IOLoop.current().start()
